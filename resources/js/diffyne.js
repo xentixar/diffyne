@@ -431,7 +431,18 @@ class Diffyne {
         const component = this.components.get(componentId);
         if (!component) return;
 
-        const { patches, state, fingerprint } = response.component;
+        // Support both minified and full response formats
+        const success = response.s !== undefined ? response.s : response.success;
+        const componentData = response.c || response.component;
+        
+        if (!success || !componentData) {
+            this.log('Invalid response format');
+            return;
+        }
+
+        const patches = componentData.p || componentData.patches || [];
+        const state = componentData.st || componentData.state;
+        const fingerprint = componentData.f || componentData.fingerprint;
 
         this.log(`Applying ${patches.length} patches to ${componentId}`, patches);
 
@@ -445,18 +456,27 @@ class Diffyne {
             this.applyPatch(contentRoot, patch);
         });
 
-        // Update component metadata
-        component.state = state;
-        component.fingerprint = fingerprint;
-        component.element.setAttribute('diffyne:state', JSON.stringify(state));
-        component.element.setAttribute('diffyne:fingerprint', fingerprint);
+        // Update component metadata only if state is provided
+        if (state) {
+            component.state = state;
+            component.element.setAttribute('diffyne:state', JSON.stringify(state));
+        }
+        
+        if (fingerprint) {
+            component.fingerprint = fingerprint;
+            component.element.setAttribute('diffyne:fingerprint', fingerprint);
+        }
     }
 
     /**
      * Apply a single patch to the DOM
      */
     applyPatch(root, patch) {
-        const { type, path, data } = patch;
+        // Support both full and minified formats
+        const type = patch.t || patch.type;
+        const path = patch.p || patch.path;
+        const data = patch.d || patch.data;
+        
         const target = this.getNodeByPath(root, path);
 
         if (!target) {
@@ -464,7 +484,10 @@ class Diffyne {
             return;
         }
 
-        switch (type) {
+        // Expand minified type
+        const fullType = this.expandType(type);
+
+        switch (fullType) {
             case 'create':
                 this.patchCreate(target, data);
                 break;
@@ -484,6 +507,21 @@ class Diffyne {
                 this.patchReorder(target, data);
                 break;
         }
+    }
+
+    /**
+     * Expand minified patch type to full name
+     */
+    expandType(type) {
+        const typeMap = {
+            'c': 'create',
+            'r': 'remove',
+            'R': 'replace',
+            't': 'update_text',
+            'a': 'update_attrs',
+            'o': 'reorder'
+        };
+        return typeMap[type] || type;
     }
 
     /**
@@ -541,7 +579,8 @@ class Diffyne {
      */
     patchUpdateText(node, data) {
         if (node.nodeType === Node.TEXT_NODE) {
-            node.textContent = data.text;
+            // Support both minified (x) and full (text) format
+            node.textContent = data.x || data.text;
         }
     }
 
@@ -549,13 +588,17 @@ class Diffyne {
      * Patch: Update attributes
      */
     patchUpdateAttrs(element, data) {
+        // Support both minified and full format
+        const setAttrs = data.s || data.set || {};
+        const removeAttrs = data.r || data.remove || [];
+        
         // Set/update attributes
-        Object.entries(data.set || {}).forEach(([key, value]) => {
+        Object.entries(setAttrs).forEach(([key, value]) => {
             element.setAttribute(key, value);
         });
 
         // Remove attributes
-        (data.remove || []).forEach(key => {
+        removeAttrs.forEach(key => {
             element.removeAttribute(key);
         });
     }
@@ -574,9 +617,37 @@ class Diffyne {
     }
 
     /**
-     * Convert VNode to actual DOM node
+     * Convert VNode to actual DOM node (supports both full and minimal formats)
      */
     vnodeToDOM(vnode) {
+        // Minimal format: {x: "text"} or {t: "tag", a: {}, c: []}
+        if (vnode.x !== undefined) {
+            return document.createTextNode(vnode.x);
+        }
+        
+        if (vnode.m !== undefined) {
+            return document.createComment(vnode.m);
+        }
+        
+        if (vnode.t) {
+            const element = document.createElement(vnode.t);
+            
+            // Set attributes (minimal: 'a', full: 'attributes')
+            const attrs = vnode.a || vnode.attributes || {};
+            Object.entries(attrs).forEach(([key, value]) => {
+                element.setAttribute(key, value);
+            });
+            
+            // Add children (minimal: 'c', full: 'children')
+            const children = vnode.c || vnode.children || [];
+            children.forEach(child => {
+                element.appendChild(this.vnodeToDOM(child));
+            });
+            
+            return element;
+        }
+        
+        // Old format fallback
         if (vnode.type === 'text') {
             return document.createTextNode(vnode.text);
         }

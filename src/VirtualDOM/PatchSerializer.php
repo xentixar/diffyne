@@ -40,15 +40,83 @@ class PatchSerializer
      */
     public function toResponse(array $response, bool $minify = true): array
     {
-        return [
-            'success' => true,
-            'component' => [
-                'id' => $response['id'] ?? null,
-                'patches' => $response['patches'] ?? [],
-                'state' => $response['state'] ?? [],
-                'fingerprint' => $response['fingerprint'] ?? null,
+        $patches = $response['patches'] ?? [];
+        
+        // Minify patches if requested
+        if ($minify) {
+            $patches = $this->minifyPatches($patches);
+        }
+        
+        $result = [
+            's' => true, // success
+            'c' => [ // component
+                'i' => $response['id'] ?? null, // id
+                'p' => $patches, // patches
+                'st' => $response['state'] ?? [], // state (always send for sync)
+                'f' => $response['fingerprint'] ?? null, // fingerprint
             ],
         ];
+        
+        return $result;
+    }
+
+    /**
+     * Minify patches by using shorter keys.
+     */
+    protected function minifyPatches(array $patches): array
+    {
+        return array_map(function ($patch) {
+            $minified = [
+                't' => $this->minifyType($patch['type']),
+                'p' => $patch['path'],
+            ];
+            
+            if (isset($patch['data'])) {
+                $minified['d'] = $this->minifyData($patch['type'], $patch['data']);
+            }
+            
+            return $minified;
+        }, $patches);
+    }
+
+    /**
+     * Minify patch type to single character.
+     */
+    protected function minifyType(string $type): string
+    {
+        return match($type) {
+            'create' => 'c',
+            'remove' => 'r',
+            'replace' => 'R',
+            'update_text' => 't',
+            'update_attrs' => 'a',
+            'reorder' => 'o',
+            default => $type,
+        };
+    }
+
+    /**
+     * Minify patch data keys.
+     */
+    protected function minifyData(string $type, array $data): array
+    {
+        switch ($type) {
+            case 'update_text':
+                return ['x' => $data['text']];
+                
+            case 'update_attrs':
+                $minified = [];
+                if (!empty($data['set'])) {
+                    $minified['s'] = $data['set'];
+                }
+                if (!empty($data['remove'])) {
+                    $minified['r'] = $data['remove'];
+                }
+                return $minified;
+                
+            default:
+                return $data;
+        }
     }
 
     /**

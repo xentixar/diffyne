@@ -42,7 +42,7 @@ class DiffEngine
         // Case 1: New node created
         if ($oldNode === null && $newNode !== null) {
             $this->addPatch(self::PATCH_CREATE, $path, [
-                'node' => $newNode->toArray(),
+                'node' => $newNode->toMinimal(),
             ]);
             return;
         }
@@ -61,7 +61,7 @@ class DiffEngine
         // Case 4: Node type changed
         if ($oldNode->type !== $newNode->type) {
             $this->addPatch(self::PATCH_REPLACE, $path, [
-                'node' => $newNode->toArray(),
+                'node' => $newNode->toMinimal(),
             ]);
             return;
         }
@@ -69,7 +69,7 @@ class DiffEngine
         // Case 5: Element tag changed
         if ($oldNode->isElement() && $newNode->isElement() && $oldNode->tag !== $newNode->tag) {
             $this->addPatch(self::PATCH_REPLACE, $path, [
-                'node' => $newNode->toArray(),
+                'node' => $newNode->toMinimal(),
             ]);
             return;
         }

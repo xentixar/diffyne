@@ -203,6 +203,36 @@ class VNode
     }
 
     /**
+     * Convert node to minimal client representation (compact keys, no paths).
+     */
+    public function toMinimal(): array
+    {
+        if ($this->isElement()) {
+            $data = ['t' => $this->tag];
+            
+            if (!empty($this->attributes)) {
+                $data['a'] = $this->attributes;
+            }
+            
+            if (!empty($this->children)) {
+                $data['c'] = array_map(fn($child) => $child->toMinimal(), $this->children);
+            }
+            
+            if ($this->key !== null) {
+                $data['k'] = $this->key;
+            }
+            
+            return $data;
+        } elseif ($this->isText()) {
+            return ['x' => $this->text];
+        } elseif ($this->isComment()) {
+            return ['m' => $this->text];
+        }
+
+        return [];
+    }
+
+    /**
      * Get a string representation of the node path.
      */
     public function getPathString(): string
