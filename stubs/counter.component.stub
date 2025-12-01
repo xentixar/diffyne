@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Diffyne;
+
+use Diffyne\Component;
+use Illuminate\View\View;
+
+class Counter extends Component
+{
+    /**
+     * The counter value.
+     */
+    public int $count = 0;
+
+    /**
+     * Increment the counter.
+     */
+    public function increment(): void
+    {
+        $this->count++;
+    }
+
+    /**
+     * Decrement the counter.
+     */
+    public function decrement(): void
+    {
+        $this->count--;
+    }
+
+    /**
+     * Reset the counter.
+     */
+    public function reset(): void
+    {
+        $this->count = 0;
+    }
+
+    /**
+     * Render the component.
+     */
+    public function render(): View|string
+    {
+        return view($this->view());
+    }
+}

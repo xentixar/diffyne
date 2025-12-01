@@ -134,18 +134,24 @@ class Diffyne {
                 const property = target.getAttribute('diffyne:model');
                 const modifiers = this.parseModifiers(property);
                 
-                // Store the handler on the element to maintain debounce state
-                if (!target._diffyneModelHandler) {
-                    let handler = (value) => this.handleModelUpdate(componentId, modifiers.property, value);
-                    
-                    if (modifiers.debounce) {
-                        handler = this.debounce(handler, modifiers.debounce);
+                // Only send requests if .live modifier is present
+                if (modifiers.live) {
+                    // Store the handler on the element to maintain debounce state
+                    if (!target._diffyneModelHandler) {
+                        let handler = (value) => this.handleModelUpdate(componentId, modifiers.property, value);
+                        
+                        if (modifiers.debounce) {
+                            handler = this.debounce(handler, modifiers.debounce);
+                        }
+                        
+                        target._diffyneModelHandler = handler;
                     }
                     
-                    target._diffyneModelHandler = handler;
+                    target._diffyneModelHandler(target.value);
+                } else {
+                    // Just update local state without sending request
+                    this.updateLocalState(componentId, modifiers.property, target.value);
                 }
-                
-                target._diffyneModelHandler(target.value);
             }
         });
 
@@ -158,6 +164,9 @@ class Diffyne {
                 // For lazy updates or select/checkbox/radio
                 if (modifiers.lazy || target.tagName === 'SELECT' || target.type === 'checkbox' || target.type === 'radio') {
                     this.handleModelUpdate(componentId, modifiers.property, target.value);
+                } else if (!modifiers.live) {
+                    // Update local state for non-live inputs on change
+                    this.updateLocalState(componentId, modifiers.property, target.value);
                 }
             }
         });
@@ -238,12 +247,25 @@ class Diffyne {
     }
 
     /**
-     * Handle model property update
+     * Handle model property update (with server sync)
      */
     async handleModelUpdate(componentId, property, value) {
         this.log(`Model update: ${property} = ${value}`);
 
         await this.updateProperty(componentId, property, value);
+    }
+
+    /**
+     * Update local state only (no server request)
+     */
+    updateLocalState(componentId, property, value) {
+        const component = this.components.get(componentId);
+        if (!component) return;
+
+        // Update local state
+        component.state[property] = value;
+        
+        this.log(`Local state update: ${property} = ${value}`);
     }
 
     /**
@@ -361,11 +383,16 @@ class Diffyne {
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const data = await response.json();
+
+        if (!response.ok || !data.s) {
+            const error = new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+            error.type = data.type;
+            error.details = data;
+            throw error;
         }
 
-        return await response.json();
+        return data;
     }
 
     /**
@@ -460,12 +487,40 @@ class Diffyne {
         if (state) {
             component.state = state;
             component.element.setAttribute('diffyne:state', JSON.stringify(state));
+            
+            // Sync input values with state for model-bound inputs
+            this.syncModelInputs(component.element, state);
         }
         
         if (fingerprint) {
             component.fingerprint = fingerprint;
             component.element.setAttribute('diffyne:fingerprint', fingerprint);
         }
+    }
+
+    /**
+     * Sync model-bound input values with component state
+     */
+    syncModelInputs(element, state) {
+        element.querySelectorAll('[diffyne\\:model]').forEach(input => {
+            const property = input.getAttribute('diffyne:model');
+            const modifiers = this.parseModifiers(property);
+            const propertyName = modifiers.property;
+            
+            if (state.hasOwnProperty(propertyName)) {
+                const value = state[propertyName] ?? '';
+                
+                if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
+                    if (input.value !== value) {
+                        input.value = value;
+                    }
+                } else if (input.tagName === 'SELECT') {
+                    if (input.value !== value) {
+                        input.value = value;
+                    }
+                }
+            }
+        });
     }
 
     /**
@@ -477,19 +532,31 @@ class Diffyne {
         const path = patch.p || patch.path;
         const data = patch.d || patch.data;
         
-        const target = this.getNodeByPath(root, path);
+        // Expand minified type
+        const fullType = this.expandType(type);
+        
+        // For CREATE patches, the path includes the index where to insert
+        // So we need to navigate to the parent and get the insert index
+        let target, insertIndex;
+        
+        if (fullType === 'create' && path.length > 0) {
+            // Last element is the insert position, rest is parent path
+            const parentPath = path.slice(0, -1);
+            insertIndex = path[path.length - 1];
+            target = this.getNodeByPath(root, parentPath);
+        } else {
+            target = this.getNodeByPath(root, path);
+            insertIndex = null;
+        }
 
         if (!target) {
             this.log('Target node not found for path:', path);
             return;
         }
 
-        // Expand minified type
-        const fullType = this.expandType(type);
-
         switch (fullType) {
             case 'create':
-                this.patchCreate(target, data);
+                this.patchCreate(target, data, insertIndex);
                 break;
             case 'remove':
                 this.patchRemove(target);
@@ -554,9 +621,27 @@ class Diffyne {
     /**
      * Patch: Create new node
      */
-    patchCreate(parent, data) {
+    patchCreate(parent, data, insertIndex = null) {
         const newNode = this.vnodeToDOM(data.node);
-        parent.appendChild(newNode);
+        
+        if (insertIndex !== null) {
+            // Get meaningful children (skip whitespace-only text nodes)
+            const meaningfulChildren = Array.from(parent.childNodes).filter(child => {
+                if (child.nodeType === Node.TEXT_NODE) {
+                    return child.textContent.trim() !== '';
+                }
+                return true;
+            });
+            
+            const referenceNode = meaningfulChildren[insertIndex];
+            if (referenceNode) {
+                parent.insertBefore(newNode, referenceNode);
+            } else {
+                parent.appendChild(newNode);
+            }
+        } else {
+            parent.appendChild(newNode);
+        }
     }
 
     /**
@@ -595,11 +680,21 @@ class Diffyne {
         // Set/update attributes
         Object.entries(setAttrs).forEach(([key, value]) => {
             element.setAttribute(key, value);
+            
+            // Special handling for form elements - also update the property
+            if ((element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT') && key === 'value') {
+                element.value = value;
+            }
         });
 
         // Remove attributes
         removeAttrs.forEach(key => {
             element.removeAttribute(key);
+            
+            // Special handling for form elements
+            if ((element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT') && key === 'value') {
+                element.value = '';
+            }
         });
     }
 
@@ -777,6 +872,31 @@ class Diffyne {
      */
     handleError(error) {
         console.error('[Diffyne Error]', error);
+        
+        // Show user-friendly error message
+        let message = 'An error occurred';
+        
+        if (error.type === 'method_error') {
+            message = `Method Error: ${error.message}`;
+        } else if (error.type === 'property_error') {
+            message = `Property Error: ${error.message}`;
+        } else if (error.type === 'exception' && error.details) {
+            message = `${error.details.exception}: ${error.message}\nFile: ${error.details.file}:${error.details.line}`;
+        } else {
+            message = error.message || 'Unknown error occurred';
+        }
+        
+        // Show in console
+        console.error('[Diffyne Error Details]', {
+            type: error.type,
+            message: error.message,
+            details: error.details
+        });
+        
+        // You can also show a user-facing notification here
+        if (this.config.debug) {
+            alert(message);
+        }
     }
 }
 

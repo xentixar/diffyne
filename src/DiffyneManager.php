@@ -64,9 +64,10 @@ class DiffyneManager
             return $component;
         }
 
-        // Try to find in default namespace
+        // Try to find in default namespace (support nested paths with forward slashes)
         $defaultNamespace = config('diffyne.component_namespace', 'App\\Diffyne');
-        $fullClass = $defaultNamespace . '\\' . $component;
+        $componentPath = str_replace('/', '\\', $component);
+        $fullClass = $defaultNamespace . '\\' . $componentPath;
 
         if (class_exists($fullClass)) {
             return $fullClass;
@@ -84,7 +85,11 @@ class DiffyneManager
         $html = $rendered['html'];
         $state = htmlspecialchars(json_encode($rendered['state']), ENT_QUOTES, 'UTF-8');
         $fingerprint = $rendered['fingerprint'];
-        $componentName = class_basename($componentClass);
+        
+        // For nested components, use the full path as component name
+        $namespace = config('diffyne.component_namespace', 'App\\Diffyne');
+        $componentName = str_replace($namespace . '\\', '', $componentClass);
+        $componentName = str_replace('\\', '/', $componentName);
 
         return <<<HTML
 <div 

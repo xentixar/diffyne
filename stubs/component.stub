@@ -1,0 +1,30 @@
+<?php
+
+namespace DummyNamespace;
+
+use Diffyne\Component;
+use Illuminate\View\View;
+
+class DummyClass extends Component
+{
+    /**
+     * Component public properties.
+     */
+    // public string $message = 'Hello from Diffyne!';
+
+    /**
+     * Mount the component.
+     */
+    public function mount(): void
+    {
+        //
+    }
+
+    /**
+     * Render the component.
+     */
+    public function render(): View|string
+    {
+        return view($this->view());
+    }
+}

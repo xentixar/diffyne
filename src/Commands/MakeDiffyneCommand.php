@@ -24,11 +24,12 @@ class MakeDiffyneCommand extends Command
     {
         $name = $this->argument('name');
         $className = $this->getClassName($name);
-        $namespace = config('diffyne.component_namespace', 'App\\Diffyne');
+        $baseNamespace = config('diffyne.component_namespace', 'App\\Diffyne');
+        $namespace = $this->getFullNamespace($baseNamespace);
         $viewPath = config('diffyne.view_path', resource_path('views/diffyne'));
 
         // Create component class
-        $classPath = $this->getClassPath($className, $namespace);
+        $classPath = $this->getClassPath($className, $baseNamespace);
         
         if (File::exists($classPath)) {
             $this->error("Component [{$className}] already exists!");
@@ -67,7 +68,11 @@ class MakeDiffyneCommand extends Command
      */
     protected function getClassName(string $name): string
     {
-        return str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $name)));
+        // Handle nested paths (e.g., "Forms/LoginForm" -> "LoginForm")
+        $parts = explode('/', $name);
+        $className = end($parts);
+        
+        return str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $className)));
     }
 
     /**
@@ -75,7 +80,13 @@ class MakeDiffyneCommand extends Command
      */
     protected function getViewName(string $name): string
     {
-        return strtolower(str_replace(' ', '-', preg_replace('/(?<!^)[A-Z]/', '-$0', $name)));
+        // Convert to kebab-case and preserve path separators
+        $parts = explode('/', $name);
+        $parts = array_map(function($part) {
+            return strtolower(str_replace(' ', '-', preg_replace('/(?<!^)[A-Z]/', '-$0', $part)));
+        }, $parts);
+        
+        return implode('/', $parts);
     }
 
     /**
@@ -83,8 +94,37 @@ class MakeDiffyneCommand extends Command
      */
     protected function getClassPath(string $className, string $namespace): string
     {
+        $name = $this->argument('name');
         $relativePath = str_replace('\\', '/', str_replace('App\\', '', $namespace));
+        
+        // Handle nested paths
+        $parts = explode('/', $name);
+        if (count($parts) > 1) {
+            // Remove the class name from parts to get the subdirectory
+            array_pop($parts);
+            $subPath = implode('/', $parts);
+            return app_path("{$relativePath}/{$subPath}/{$className}.php");
+        }
+        
         return app_path("{$relativePath}/{$className}.php");
+    }
+
+    /**
+     * Get the full namespace including subdirectories.
+     */
+    protected function getFullNamespace(string $baseNamespace): string
+    {
+        $name = $this->argument('name');
+        $parts = explode('/', $name);
+        
+        if (count($parts) > 1) {
+            // Remove the class name from parts
+            array_pop($parts);
+            $subNamespace = implode('\\', $parts);
+            return $baseNamespace . '\\' . $subNamespace;
+        }
+        
+        return $baseNamespace;
     }
 
     /**
@@ -92,39 +132,13 @@ class MakeDiffyneCommand extends Command
      */
     protected function getClassStub(string $className, string $namespace): string
     {
-        return <<<PHP
-<?php
-
-namespace {$namespace};
-
-use Diffyne\Component;
-use Illuminate\View\View;
-
-class {$className} extends Component
-{
-    /**
-     * Component public properties.
-     */
-    // public string \$message = 'Hello from Diffyne!';
-
-    /**
-     * Mount the component.
-     */
-    public function mount(): void
-    {
-        //
-    }
-
-    /**
-     * Render the component.
-     */
-    public function render(): View|string
-    {
-        return view(\$this->view());
-    }
-}
-
-PHP;
+        $stub = File::get(__DIR__ . '/../../stubs/component.stub');
+        
+        return str_replace(
+            ['DummyNamespace', 'DummyClass'],
+            [$namespace, $className],
+            $stub
+        );
     }
 
     /**
@@ -132,18 +146,8 @@ PHP;
      */
     protected function getViewStub(string $className): string
     {
-        return <<<HTML
-<div>
-    <h2>Welcome to {$className}</h2>
-    <p>Edit this component in resources/views/diffyne</p>
-    
-    {{-- Example button with click action --}}
-    {{-- <button diffyne:click="methodName">Click Me</button> --}}
-    
-    {{-- Example input with model binding --}}
-    {{-- <input type="text" diffyne:model="propertyName"> --}}
-</div>
-
-HTML;
+        $stub = File::get(__DIR__ . '/../../stubs/view.stub');
+        
+        return str_replace('DummyClass', $className, $stub);
     }
 }

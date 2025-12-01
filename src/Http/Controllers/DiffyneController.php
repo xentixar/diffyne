@@ -2,12 +2,16 @@
 
 namespace Diffyne\Http\Controllers;
 
+use BadMethodCallException;
 use Diffyne\State\ComponentHydrator;
 use Diffyne\VirtualDOM\Renderer;
 use Diffyne\VirtualDOM\PatchSerializer;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 
 class DiffyneController extends Controller
 {
@@ -100,18 +104,42 @@ class DiffyneController extends Controller
 
             return response()->json($this->serializer->toResponse($response));
 
-        } catch (\Exception $e) {
+        } catch (BadMethodCallException $e) {
+            return response()->json([
+                's' => false,
+                'error' => $e->getMessage(),
+                'type' => 'method_error',
+            ], 400);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                's' => false,
+                'error' => $e->getMessage(),
+                'type' => 'property_error',
+            ], 400);
+        } catch (Exception $e) {
+            Log::error('Diffyne Error: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
             if (config('diffyne.debug', false)) {
                 return response()->json([
-                    'success' => false,
+                    's' => false,
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
+                    'type' => 'exception',
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => explode("\n", $e->getTraceAsString()),
                 ], 500);
             }
 
             return response()->json([
-                'success' => false,
-                'error' => 'Server error',
+                's' => false,
+                'error' => 'An error occurred while processing your request.',
+                'type' => 'server_error',
             ], 500);
         }
     }
@@ -133,6 +161,8 @@ class DiffyneController extends Controller
         
         if ($componentName) {
             $defaultNamespace = config('diffyne.component_namespace', 'App\\Diffyne');
+            
+            $componentName = str_replace('/', '\\', $componentName);
             $fullClass = $defaultNamespace . '\\' . $componentName;
 
             if (class_exists($fullClass)) {
