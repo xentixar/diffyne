@@ -3,88 +3,39 @@
 A blazing-fast, server-driven UI framework for PHP powered by a lightweight **Virtual DOM + Diff Engine** (Delta Rendering Engine).  
 Diffyne lets you build dynamic interfaces with the simplicity of Blade/PHP components — but with the rendering efficiency of modern SPA frameworks.
 
-It delivers **minimal DOM updates** and optional **WebSocket sync** for real-time applications.
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue)](https://php.net)
 [![Laravel Version](https://img.shields.io/badge/laravel-%5E10.0%20%7C%20%5E11.0-red)](https://laravel.com)
 
----
-
 ## 🚀 Why Diffyne?
 
-### 🔥 Ultra-efficient delta updates
-Diffyne does **not** send full HTML fragments.  
-It computes a Virtual DOM diff and ships **only the smallest possible patch** to the browser.
+- **🔥 Ultra-efficient:** 70-95% smaller payloads than traditional approaches
+- **🧠 Server-driven:** Write UI logic in PHP, not JavaScript
+- **⚡ Lightweight:** ~12 KB JS (4 KB gzipped), sub-100ms response times
+- **✅ Laravel Native:** Full validation, authentication, and ORM integration
 
-### 🧠 Server-driven logic
-Write your UI logic entirely in PHP.  
-The client applies diffs — nothing else.
-
-### ⚡ Lightweight & Fast
-- Minimal JS payload (~11 KB minified, ~3.7 KB gzipped)
-- AJAX-based communication
-- Sub-100ms response times
-
-Perfect for dashboards, forms, CRUDs, and dynamic UIs.
-
----
-
-# 📦 Installation
-
-### 1. Require via Composer
+## 📦 Quick Start
 
 ```bash
+# Install via Composer
 composer require diffyne/diffyne
-```
 
-### 2. Publish assets and configuration
-
-```bash
-php artisan vendor:publish --tag=diffyne-config
+# Publish assets
 php artisan vendor:publish --tag=diffyne-assets
-```
 
-This will:
-- Publish `config/diffyne.php`
-- Publish JavaScript to `public/vendor/diffyne/diffyne.js`
-
-### 3. Add to your layout
-
-In your main layout (e.g., `resources/views/layouts/app.blade.php`), add before `</body>`:
-
-```blade
+# Add to your layout before </body>
 @diffyneScripts
-```
 
-**Done!** You're ready to create components.
-
----
-
-# 🧩 Creating Your First Component
-
-### 1. Generate component
-
-```bash
+# Create your first component
 php artisan make:diffyne Counter
 ```
 
-Creates:
+**[📖 Full Installation Guide →](docs/getting-started/installation.md)**
 
-```
-app/Diffyne/Counter.php
-resources/views/diffyne/counter.blade.php
-```
+## 🧩 Example Component
 
----
-
-### 2. Component Class
-
+**Component Class** (`app/Diffyne/Counter.php`):
 ```php
-namespace App\Diffyne;
-
-use Diffyne\Component;
-
 class Counter extends Component
 {
     public int $count = 0;
@@ -96,257 +47,107 @@ class Counter extends Component
 }
 ```
 
----
-
-### 3. Component View
-
-```html
+**Component View** (`resources/views/diffyne/counter.blade.php`):
+```blade
 <div>
     <h1>Count: {{ $count }}</h1>
     <button diffyne:click="increment">Increment</button>
 </div>
 ```
 
----
-
-### 4. Use in page
-
-```html
+**Usage:**
+```blade
 <diffyne:counter />
 ```
 
-Diffyne automatically:
+When the button is clicked, Diffyne sends only the minimal patch (~50 bytes) instead of the full HTML (~400 bytes)!
 
-* hydrates the component
-* syncs events
-* diffs DOM
-* applies patches
+**[🎯 More Examples →](docs/examples/)**
 
----
+## ⚙️ Core Features
 
-# ⚙️ Diffyne Directives
+| Directive | Description |
+|-----------|-------------|
+| `diffyne:click` | Call server method on click |
+| `diffyne:model` | Two-way data binding |
+| `diffyne:submit` | Handle form submission |
+| `diffyne:poll` | Auto-refresh at intervals |
+| `diffyne:loading` | Show loading states |
+| `diffyne:error` | Display validation errors |
 
-| Directive            | Description                           |
-| -------------------- | ------------------------------------- |
-| `diffyne:click`      | Call method on server                 |
-| `diffyne:change`     | Trigger on input change               |
-| `diffyne:model`      | Two-way bind property (deferred)      |
-| `diffyne:model.live` | Two-way bind with instant server sync |
-| `diffyne:model.lazy` | Two-way bind on change event          |
-| `diffyne:submit`     | Handle forms                          |
-| `diffyne:poll="500"` | Poll server every X ms                |
-| `diffyne:loading`    | Loading state binding                 |
-
-### Example
-
-```html
+```blade
+{{-- Live search with debouncing --}}
 <input diffyne:model.live.debounce.300="search">
-<button diffyne:click="save" diffyne:loading.class="opacity-50">Save</button>
+
+{{-- Form with validation --}}
+<form diffyne:submit.prevent="submit">
+    <input diffyne:model.defer="email">
+    <span diffyne:error="email"></span>
+    <button type="submit" diffyne:loading.attr="disabled">Submit</button>
+</form>
 ```
 
----
+**[📚 Complete Directives Guide →](docs/features/directives.md)**
 
-# 🔄 Two-Way Binding Examples
+## 📖 Documentation
 
-### Text Input
+### Getting Started
+- [Installation](docs/getting-started/installation.md)
+- [Quick Start](docs/getting-started/quickstart.md)
+- [Your First Component](docs/getting-started/first-component.md)
 
-```html
-<input type="text" diffyne:model="username">
-```
+### Features
+- [Directives Overview](docs/features/directives.md)
+- [Click Events](docs/features/click-events.md)
+- [Data Binding](docs/features/data-binding.md)
+- [Forms](docs/features/forms.md)
+- [Validation](docs/features/validation.md)
+- [Loading States](docs/features/loading-states.md)
+- [Polling](docs/features/polling.md)
+- [Error Handling](docs/features/error-handling.md)
 
-### Checkbox
+### Examples
+- [Counter Component](docs/examples/counter.md)
+- [Todo List](docs/examples/todo-list.md)
+- [Contact Form](docs/examples/contact-form.md)
+- [Live Search](docs/examples/search.md)
 
-```html
-<input type="checkbox" diffyne:model="active">
-```
+### Advanced
+- [Virtual DOM Engine](docs/advanced/virtual-dom.md)
+- [Lifecycle Hooks](docs/advanced/lifecycle-hooks.md)
+- [Component State](docs/advanced/component-state.md)
+- [Performance](docs/advanced/performance.md)
+- [Testing](docs/advanced/testing.md)
 
-### Select
+## ⚡ Performance
 
-```html
-<select diffyne:model="category">
-```
+- **70-95% smaller payloads** than traditional HTML-over-the-wire approaches
+- **Sub-100ms response times** for most operations
+- **~12 KB minified JS** (~4 KB gzipped)
+- Only changed DOM nodes are updated
+- Automatic input value syncing
+- Built-in validation with automatic error display
 
----
+## 🛣 Roadmap
 
-# 🎯 Real Example: Todo App
+**v1.0 (Current)**
+- ✅ Virtual DOM diff engine
+- ✅ Core directives & data binding
+- ✅ Form validation
+- ✅ Lifecycle hooks
+- ✅ Loading states & polling
 
-### PHP Component
+**Coming Soon**
+- Flash messages & redirects
+- File uploads
+- Component events
+- Query string binding
+- WebSocket support
 
-```php
-class Todo extends Component
-{
-    public array $items = [];
-    public string $newItem = '';
+## 🤝 Contributing
 
-    public function add()
-    {
-        if ($this->newItem !== '') {
-            $this->items[] = $this->newItem;
-            $this->newItem = '';
-        }
-    }
+Pull requests are welcome! Follow PSR-12 and include tests for new features.
 
-    public function remove($index)
-    {
-        unset($this->items[$index]);
-        $this->items = array_values($this->items);
-    }
-}
-```
-
----
-
-### Blade View
-
-```html
-<div>
-    <input diffyne:model="newItem" placeholder="Add todo...">
-    <button diffyne:click="add">Add</button>
-
-    <ul>
-        @foreach ($items as $i => $item)
-            <li>
-                {{ $item }}
-                <button diffyne:click="remove({{ $i }})">x</button>
-            </li>
-        @endforeach
-    </ul>
-</div>
-```
-
----
-
-# 🧬 Diffyne Virtual DOM Engine (DVDE)
-
-Diffyne uses a custom Virtual DOM engine to achieve high performance.
-
-Rendering pipeline:
-
-```
-PHP state
-    → template render
-        → virtual DOM snapshot
-            → diff engine
-                → delta packets
-                    → client patcher
-                        → DOM update
-```
-
-### Patch Types Supported
-
-* Text node updates
-* Attribute diffing
-* Add/remove elements
-* Reorder lists (keyed diffing)
-* Input value preservation
-* Component hydration patches
-
-### Example patch packet sent to browser:
-
-```json
-{
-  "type": "text",
-  "node": "#text-17",
-  "value": "Count: 5"
-}
-```
-
----
-
-# ♻️ Lifecycle Hooks
-
-### Hooks available:
-
-| Hook               | Trigger                            |
-| ------------------ | ---------------------------------- |
-| `mount()`          | Before component renders           |
-| `hydrate()`        | After client hydration             |
-| `updating($field)` | Before a property updates          |
-| `updated($field)`  | After a property updates           |
-| `dehydrate()`      | Before sending DOM diffs to client |
-
-### Example usage:
-
-```php
-public function updated($field)
-{
-    logger("Updated: $field");
-}
-```
-
----
-
-# 🗂 Directory Structure
-
-```
-app/
- └── Diffyne/              # Your components
-       └── Counter.php
-       └── TodoList.php
-       
-resources/
- └── views/
-       └── diffyne/         # Component views
-             └── counter.blade.php
-             └── todo-list.blade.php
-
-public/
- └── vendor/
-       └── diffyne/
-             └── diffyne.js  # Client-side runtime
-
-config/
- └── diffyne.php           # Configuration
-```
-
----
-
-# ⚡ Performance Advantages
-
-* DOM patches are **70–95% smaller** than Livewire/HTMX-style HTML responses.
-* Only changed nodes are updated — no full HTML morphing.
-* Sub-100ms server round-trip times for most operations.
-* Minimal JS payload (~11 KB minified, ~3.7 KB gzipped).
-* Automatic input/textarea/select value syncing.
-
----
-
-# 🛣 Roadmap
-
-### ✅ Completed (v1.0)
-
-* ✅ Virtual DOM diff engine with minimal patches
-* ✅ Core directives (click, change, model, submit, poll, loading)
-* ✅ Two-way data binding with modifiers (.live, .lazy, .debounce)
-* ✅ Component hydration & state management
-* ✅ Nested component support
-* ✅ Error handling with specific error types
-* ✅ Minified patch format for optimal payload size
-
-### 🚧 In Progress
-
-* File uploads support
-* Component nesting and slots
-* Keyed list diffing optimization
-
-### 🔮 Future
-
-* WebSocket transport option
-* Partial hydration / islands architecture
-* Streaming SSR
-* Static segment compiler
-* Browser devtools extension
-* Plugin API for custom directives
-
----
-
-# 🤝 Contributing
-
-Pull requests are welcome!
-Follow PSR-12 and include tests for new features.
-
----
-
-# 📝 License
+## 📝 License
 
 MIT License © 2025 Diffyne Team
