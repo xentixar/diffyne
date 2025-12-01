@@ -57,6 +57,10 @@ class PatchSerializer
             ],
         ];
         
+        if (isset($response['errors']) && !empty($response['errors'])) {
+            $result['c']['e'] = $response['errors'];
+        }
+        
         return $result;
     }
 

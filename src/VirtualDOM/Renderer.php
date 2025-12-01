@@ -4,6 +4,8 @@ namespace Diffyne\VirtualDOM;
 
 use Diffyne\Component;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\ViewErrorBag;
+use Illuminate\View\View as IlluminateView;
 
 /**
  * Renderer for Diffyne components that generates Virtual DOM and patches.
@@ -61,13 +63,20 @@ class Renderer
         $patches = $this->diffEngine->diff($oldVdom, $newVdom);
         $patches = $this->diffEngine->optimizePatches($patches);
 
-        return [
+        $result = [
             'id' => $component->id,
             'patches' => $patches,
             'html' => $html,
             'state' => $component->getState(),
             'fingerprint' => $component->calculateFingerprint(),
         ];
+
+        // Include errors if any exist
+        if ($component->getErrorBag()->isNotEmpty()) {
+            $result['errors'] = $component->getErrorBag()->toArray();
+        }
+
+        return $result;
     }
 
     /**
@@ -81,8 +90,17 @@ class Renderer
             return $view;
         }
 
-        if ($view instanceof \Illuminate\View\View) {
-            return $view->with($component->getState())->render();
+        if ($view instanceof IlluminateView) {
+            // Pass component state and errors to the view
+            $errorBag = new ViewErrorBag();
+            $errorBag->put('default', $component->getErrorBag());
+            
+            $data = array_merge(
+                $component->getState(),
+                ['errors' => $errorBag]
+            );
+            
+            return $view->with($data)->render();
         }
 
         throw new \InvalidArgumentException('Component render() must return a string or View instance.');

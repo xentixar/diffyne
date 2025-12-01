@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class DiffyneController extends Controller
@@ -62,6 +63,11 @@ class DiffyneController extends Controller
             // Hydrate component from state
             $component = $this->hydrator->hydrate($componentClass, $state, $componentId);
 
+            // Restore error bag if present
+            if ($request->has('errors')) {
+                $component->setErrorBag($request->input('errors', []));
+            }
+
             // Handle different request types
             switch ($type) {
                 case 'call':
@@ -100,6 +106,19 @@ class DiffyneController extends Controller
             }
 
             // Render updates and generate patches
+            $response = $this->renderer->renderUpdate($component, $previousHtml);
+
+            return response()->json($this->serializer->toResponse($response));
+
+        } catch (ValidationException $e) {
+            // Return validation errors
+            return response()->json([
+                's' => false,
+                'error' => 'Validation failed',
+                'type' => 'validation_error',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (BadMethodCallException $e) {
             $response = $this->renderer->renderUpdate($component, $previousHtml);
 
             return response()->json($this->serializer->toResponse($response));

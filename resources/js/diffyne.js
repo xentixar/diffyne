@@ -59,6 +59,7 @@ class Diffyne {
                 state,
                 fingerprint,
                 vdom: this.buildVDOM(element),
+                errors: {},
             });
 
             this.bindEvents(element, id);
@@ -318,12 +319,19 @@ class Diffyne {
                 params,
                 state: component.state,
                 fingerprint: component.fingerprint,
-                previousHtml: component.element.firstElementChild?.innerHTML || ''
+                previousHtml: component.element.firstElementChild?.innerHTML || '',
+                errors: component.errors || {}
             });
 
             this.applyPatches(componentId, response);
         } catch (error) {
-            this.handleError(error);
+            // Handle validation errors specially
+            if (error.type === 'validation_error' && error.details?.errors) {
+                component.errors = error.details.errors;
+                this.displayErrors(component.element, error.details.errors);
+            } else {
+                this.handleError(error);
+            }
         } finally {
             this.hideLoading(component.element);
         }
@@ -349,12 +357,18 @@ class Diffyne {
                 value,
                 state: component.state,
                 fingerprint: component.fingerprint,
-                previousHtml: component.element.firstElementChild?.innerHTML || ''
+                previousHtml: component.element.firstElementChild?.innerHTML || '',
+                errors: component.errors || {}
             });
 
             this.applyPatches(componentId, response);
         } catch (error) {
-            this.handleError(error);
+            if (error.type === 'validation_error' && error.details?.errors) {
+                component.errors = error.details.errors;
+                this.displayErrors(component.element, error.details.errors);
+            } else {
+                this.handleError(error);
+            }
         }
     }
 
@@ -470,6 +484,7 @@ class Diffyne {
         const patches = componentData.p || componentData.patches || [];
         const state = componentData.st || componentData.state;
         const fingerprint = componentData.f || componentData.fingerprint;
+        const errors = componentData.e || componentData.errors;
 
         this.log(`Applying ${patches.length} patches to ${componentId}`, patches);
 
@@ -496,6 +511,70 @@ class Diffyne {
             component.fingerprint = fingerprint;
             component.element.setAttribute('diffyne:fingerprint', fingerprint);
         }
+
+        if (errors) {
+            component.errors = errors;
+            this.displayErrors(component.element, errors);
+        } else {
+            component.errors = {};
+            this.clearErrors(component.element);
+        }
+    }
+
+    /**
+     * Display validation errors in the component
+     */
+    displayErrors(element, errors) {
+        this.clearErrors(element);
+
+        Object.entries(errors).forEach(([field, messages]) => {
+            const fieldElement = element.querySelector(`[name="${field}"], [diffyne\\:model="${field}"]`);
+            
+            if (fieldElement) {
+                fieldElement.classList.add('diffyne-error');
+                fieldElement.setAttribute('aria-invalid', 'true');
+
+                const errorDisplay = element.querySelector(`[diffyne\\:error="${field}"]`);
+                
+                if (errorDisplay) {
+                    errorDisplay.textContent = Array.isArray(messages) ? messages[0] : messages;
+                    errorDisplay.style.display = '';
+                } else {
+                    const errorEl = document.createElement('span');
+                    errorEl.className = 'diffyne-error-message';
+                    errorEl.textContent = Array.isArray(messages) ? messages[0] : messages;
+                    errorEl.style.color = '#ef4444';
+                    errorEl.style.fontSize = '0.875rem';
+                    errorEl.style.marginTop = '0.25rem';
+                    
+                    if (fieldElement.parentNode) {
+                        fieldElement.parentNode.insertBefore(errorEl, fieldElement.nextSibling);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Clear validation errors from the component
+     */
+    clearErrors(element) {
+        // Remove error classes
+        element.querySelectorAll('.diffyne-error').forEach(el => {
+            el.classList.remove('diffyne-error');
+            el.removeAttribute('aria-invalid');
+        });
+
+        // Clear error displays
+        element.querySelectorAll('[diffyne\\:error]').forEach(el => {
+            el.textContent = '';
+            el.style.display = 'none';
+        });
+
+        // Remove dynamically created error messages
+        element.querySelectorAll('.diffyne-error-message').forEach(el => {
+            el.remove();
+        });
     }
 
     /**
@@ -866,7 +945,6 @@ class Diffyne {
             console.log('[Diffyne]', ...args);
         }
     }
-
     /**
      * Handle errors
      */
@@ -876,7 +954,10 @@ class Diffyne {
         // Show user-friendly error message
         let message = 'An error occurred';
         
-        if (error.type === 'method_error') {
+        if (error.type === 'validation_error' && error.details?.errors) {
+            // Don't show alert for validation errors, they're shown inline
+            return;
+        } else if (error.type === 'method_error') {
             message = `Method Error: ${error.message}`;
         } else if (error.type === 'property_error') {
             message = `Property Error: ${error.message}`;

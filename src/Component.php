@@ -2,10 +2,16 @@
 
 namespace Diffyne;
 
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\MessageBag;
 use Illuminate\Support\Str;
+use Illuminate\Support\ViewErrorBag;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use ReflectionClass;
+use ReflectionNamedType;
 use ReflectionProperty;
+use TypeError;
 
 abstract class Component
 {
@@ -35,11 +41,17 @@ abstract class Component
     private array $previousState = [];
 
     /**
+     * Validation error bag.
+     */
+    protected MessageBag $errorBag;
+
+    /**
      * Create a new component instance.
      */
     public function __construct()
     {
         $this->id = $this->generateId();
+        $this->errorBag = new MessageBag();
         $this->initializeProperties();
     }
 
@@ -178,7 +190,171 @@ abstract class Component
             'snapshot',
             'updateProperty',
             'callMethod',
+            'validate',
+            'validateOnly',
+            'resetValidation',
+            'resetErrorBag',
+            'addError',
+            'getErrorBag',
+            'setErrorBag',
+            'rules',
+            'messages',
+            'validationAttributes',
         ];
+    }
+
+    /**
+     * Validate component properties.
+     *
+     * @param array|null $rules
+     * @param array $messages
+     * @param array $attributes
+     * @return array
+     * @throws ValidationException
+     */
+    protected function validate(?array $rules = null, array $messages = [], array $attributes = []): array
+    {
+        $rules = $rules ?? $this->rules();
+        $messages = array_merge($this->messages(), $messages);
+        $attributes = array_merge($this->validationAttributes(), $attributes);
+
+        $validator = Validator::make(
+            $this->getState(),
+            $rules,
+            $messages,
+            $attributes
+        );
+
+        try {
+            $validated = $validator->validate();
+            $this->resetValidation();
+            return $validated;
+        } catch (ValidationException $e) {
+            $this->errorBag = $e->validator->errors();
+            throw $e;
+        }
+    }
+
+    /**
+     * Validate a single property.
+     *
+     * @param string $field
+     * @return void
+     */
+    protected function validateOnly(string $field): void
+    {
+        $rules = $this->rules();
+        
+        if (!isset($rules[$field])) {
+            return;
+        }
+
+        $validator = Validator::make(
+            $this->getState(),
+            [$field => $rules[$field]],
+            $this->messages(),
+            $this->validationAttributes()
+        );
+
+        if ($validator->fails()) {
+            $this->errorBag->merge($validator->errors()->messages());
+        } else {
+            $this->errorBag->forget($field);
+        }
+    }
+
+    /**
+     * Reset validation for specific fields or all fields.
+     *
+     * @param string|array|null $field
+     * @return void
+     */
+    protected function resetValidation($field = null): void
+    {
+        if ($field === null) {
+            $this->errorBag = new MessageBag();
+            return;
+        }
+
+        $fields = is_array($field) ? $field : [$field];
+        
+        foreach ($fields as $f) {
+            $this->errorBag->forget($f);
+        }
+    }
+
+    /**
+     * Alias for resetValidation().
+     *
+     * @param string|array|null $field
+     * @return void
+     */
+    protected function resetErrorBag($field = null): void
+    {
+        $this->resetValidation($field);
+    }
+
+    /**
+     * Add a validation error.
+     *
+     * @param string $field
+     * @param string $message
+     * @return void
+     */
+    protected function addError(string $field, string $message): void
+    {
+        $this->errorBag->add($field, $message);
+    }
+
+    /**
+     * Get the validation rules.
+     *
+     * @return array
+     */
+    protected function rules(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get custom validation messages.
+     *
+     * @return array
+     */
+    protected function messages(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get custom validation attributes.
+     *
+     * @return array
+     */
+    protected function validationAttributes(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get the error bag.
+     *
+     * @return MessageBag
+     */
+    public function getErrorBag(): MessageBag
+    {
+        return $this->errorBag;
+    }
+
+    /**
+     * Set the error bag (for hydration).
+     *
+     * @param array $errors
+     * @return void
+     */
+    public function setErrorBag(array $errors): void
+    {
+        $this->errorBag = new MessageBag($errors);
     }
 
     /**
@@ -204,7 +380,26 @@ abstract class Component
     {
         foreach ($state as $property => $value) {
             if (property_exists($this, $property) && !in_array($property, $this->hidden)) {
-                $this->$property = $value;
+                try {
+                    $this->$property = $value;
+                } catch (TypeError $e) {
+                    $reflection = new ReflectionProperty($this, $property);
+                    $type = $reflection->getType();
+                    
+                    if ($type && !$type->allowsNull() && $value === null) {
+                        $typeName = $type instanceof ReflectionNamedType ? $type->getName() : 'mixed';
+                        $this->$property = match($typeName) {
+                            'string' => '',
+                            'int' => 0,
+                            'float' => 0.0,
+                            'bool' => false,
+                            'array' => [],
+                            default => $value,
+                        };
+                    } else {
+                        throw $e;
+                    }
+                }
             }
         }
     }
