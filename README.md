@@ -3,28 +3,11 @@
 A blazing-fast, server-driven UI framework for PHP powered by a lightweight **Virtual DOM + Diff Engine** (Delta Rendering Engine).  
 Diffyne lets you build dynamic interfaces with the simplicity of Blade/PHP components — but with the rendering efficiency of modern SPA frameworks.
 
-It delivers **minimal DOM updates**, optional **WebSocket sync**, and full compatibility with **Alpine.js**.
+It delivers **minimal DOM updates** and optional **WebSocket sync** for real-time applications.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue)](https://php.net)
 [![Laravel Version](https://img.shields.io/badge/laravel-%5E10.0%20%7C%20%5E11.0-red)](https://laravel.com)
-
----
-
-## 🎯 Current Status
-
-**✅ Version 1.0 - Core Features Complete**
-
-- ✅ Virtual DOM engine with diff algorithm
-- ✅ Component lifecycle hooks
-- ✅ State management and hydration
-- ✅ Full directive system (`diffyne:click`, `diffyne:model`, etc.)
-- ✅ AJAX transport layer
-- ✅ Laravel service provider integration
-- ✅ Artisan commands (`make:diffyne`, `diffyne:install`)
-- ✅ Client-side JavaScript runtime
-- 🚧 WebSocket transport (planned)
-- 🚧 Testing utilities (in progress)
 
 ---
 
@@ -38,15 +21,12 @@ It computes a Virtual DOM diff and ships **only the smallest possible patch** to
 Write your UI logic entirely in PHP.  
 The client applies diffs — nothing else.
 
-### 🌱 Alpine Friendly
-Alpine.js works seamlessly with Diffyne components.
+### ⚡ Lightweight & Fast
+- Minimal JS payload (~11 KB minified, ~3.7 KB gzipped)
+- AJAX-based communication
+- Sub-100ms response times
 
-### 🔄 AJAX or WebSocket transport
-Choose between:
-- **AJAX mode** (default)  
-- **WebSocket mode** (realtime)  
-
-Perfect for dashboards, forms, CRUDs, or real-time UIs.
+Perfect for dashboards, forms, CRUDs, and dynamic UIs.
 
 ---
 
@@ -58,31 +38,16 @@ Perfect for dashboards, forms, CRUDs, or real-time UIs.
 composer require diffyne/diffyne
 ```
 
-Or for local development, add to your `composer.json`:
-
-```json
-{
-    "repositories": [
-        {
-            "type": "path",
-            "url": "./packages/diffyne"
-        }
-    ]
-}
-````
-
-
-### 2. Install assets and configuration
+### 2. Publish assets and configuration
 
 ```bash
-php artisan diffyne:install
+php artisan vendor:publish --tag=diffyne-config
+php artisan vendor:publish --tag=diffyne-assets
 ```
 
 This will:
 - Publish `config/diffyne.php`
-- Publish JavaScript to `public/vendor/diffyne/`
-- Create component directories
-- Optionally create example Counter component
+- Publish JavaScript to `public/vendor/diffyne/diffyne.js`
 
 ### 3. Add to your layout
 
@@ -94,8 +59,6 @@ In your main layout (e.g., `resources/views/layouts/app.blade.php`), add before 
 
 **Done!** You're ready to create components.
 
-📚 **[Read the full Quick Start Guide →](USAGE.md)**
-
 ---
 
 # 🧩 Creating Your First Component
@@ -103,14 +66,14 @@ In your main layout (e.g., `resources/views/layouts/app.blade.php`), add before 
 ### 1. Generate component
 
 ```bash
-php artisan make:diffyne counter
+php artisan make:diffyne Counter
 ```
 
 Creates:
 
 ```
 app/Diffyne/Counter.php
-resources/diffyne/counter.blade.php
+resources/views/diffyne/counter.blade.php
 ```
 
 ---
@@ -163,22 +126,22 @@ Diffyne automatically:
 
 # ⚙️ Diffyne Directives
 
-| Directive            | Description             |
-| -------------------- | ----------------------- |
-| `diffyne:click`      | Call method on server   |
-| `diffyne:change`     | Trigger on input change |
-| `diffyne:model`      | Two-way bind property   |
-| `diffyne:submit`     | Handle forms            |
-| `diffyne:init`       | Runs on hydration       |
-| `diffyne:poll="500"` | Poll server every X ms  |
-| `diffyne:debounce`   | Debounce event          |
-| `diffyne:loading`    | Loading state binding   |
+| Directive            | Description                           |
+| -------------------- | ------------------------------------- |
+| `diffyne:click`      | Call method on server                 |
+| `diffyne:change`     | Trigger on input change               |
+| `diffyne:model`      | Two-way bind property (deferred)      |
+| `diffyne:model.live` | Two-way bind with instant server sync |
+| `diffyne:model.lazy` | Two-way bind on change event          |
+| `diffyne:submit`     | Handle forms                          |
+| `diffyne:poll="500"` | Poll server every X ms                |
+| `diffyne:loading`    | Loading state binding                 |
 
 ### Example
 
 ```html
-<input diffyne:model.live.debounce.300ms="search">
-<button diffyne:click="save" diffyne:loading.class="opacity-50">
+<input diffyne:model.live.debounce.300="search">
+<button diffyne:click="save" diffyne:loading.class="opacity-50">Save</button>
 ```
 
 ---
@@ -253,30 +216,6 @@ class Todo extends Component
 
 ---
 
-# ⚡ WebSocket Mode
-
-Diffyne includes an optional realtime WebSocket server.
-
-### Start server:
-
-```bash
-php artisan diffyne:serve
-```
-
-### Enable in `AppServiceProvider`:
-
-```php
-Diffyne::enableWebSockets();
-```
-
-This gives you:
-
-* realtime updates
-* low-latency syncing
-* multi-user shared UI
-
----
-
 # 🧬 Diffyne Virtual DOM Engine (DVDE)
 
 Diffyne uses a custom Virtual DOM engine to achieve high performance.
@@ -340,30 +279,24 @@ public function updated($field)
 # 🗂 Directory Structure
 
 ```
-src/
- ├── Components/
- ├── Traits/
- ├── State/
- 
+app/
+ └── Diffyne/              # Your components
+       └── Counter.php
+       └── TodoList.php
+       
 resources/
- └── diffyne/
-       └── components/
+ └── views/
+       └── diffyne/         # Component views
+             └── counter.blade.php
+             └── todo-list.blade.php
+
 public/
  └── vendor/
        └── diffyne/
+             └── diffyne.js  # Client-side runtime
+
 config/
- └── diffyne.php
-```
-
----
-
-# 🧪 Testing Components
-
-```php
-$this->diffyne(Todo::class)
-     ->set('newItem', 'Learn Diffyne')
-     ->call('add')
-     ->assertSee('Learn Diffyne');
+ └── diffyne.php           # Configuration
 ```
 
 ---
@@ -372,31 +305,38 @@ $this->diffyne(Todo::class)
 
 * DOM patches are **70–95% smaller** than Livewire/HTMX-style HTML responses.
 * Only changed nodes are updated — no full HTML morphing.
-* Alpine.js DOM changes are respected and not overwritten.
-* WebSocket mode delivers instantaneous updates.
-* Minimal JS payload (<10 KB minified).
+* Sub-100ms server round-trip times for most operations.
+* Minimal JS payload (~11 KB minified, ~3.7 KB gzipped).
+* Automatic input/textarea/select value syncing.
 
 ---
 
 # 🛣 Roadmap
 
-### v1.0
+### ✅ Completed (v1.0)
 
-* Full directive engine
-* Virtual DOM diff engine
-* WebSocket server
-* Alpine compatibility layer
-* Hydration & de-hydration
-* Error boundaries
+* ✅ Virtual DOM diff engine with minimal patches
+* ✅ Core directives (click, change, model, submit, poll, loading)
+* ✅ Two-way data binding with modifiers (.live, .lazy, .debounce)
+* ✅ Component hydration & state management
+* ✅ Nested component support
+* ✅ Error handling with specific error types
+* ✅ Minified patch format for optimal payload size
 
-### Future
+### 🚧 In Progress
 
-* Partial hydration / islands
+* File uploads support
+* Component nesting and slots
+* Keyed list diffing optimization
+
+### 🔮 Future
+
+* WebSocket transport option
+* Partial hydration / islands architecture
 * Streaming SSR
-* Advanced keyed loop diffing
 * Static segment compiler
-* Devtools inspector
-* Plugin API
+* Browser devtools extension
+* Plugin API for custom directives
 
 ---
 
