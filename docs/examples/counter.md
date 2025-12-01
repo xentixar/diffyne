@@ -79,7 +79,7 @@ class Counter extends Component
 ### Usage
 
 ```blade
-<diffyne:counter />
+@diffyne('Counter')
 ```
 
 ## How It Works

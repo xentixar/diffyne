@@ -169,7 +169,7 @@ Add to any page:
 @extends('layouts.app')
 
 @section('content')
-    <diffyne:todo-list />
+    @diffyne('TodoList')
 @endsection
 ```
 

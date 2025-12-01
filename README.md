@@ -5,7 +5,7 @@ Diffyne lets you build dynamic interfaces with the simplicity of Blade/PHP compo
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue)](https://php.net)
-[![Laravel Version](https://img.shields.io/badge/laravel-%5E10.0%20%7C%20%5E11.0-red)](https://laravel.com)
+[![Laravel Version](https://img.shields.io/badge/laravel-%5E10.0%20%7C%20%5E11.0%20%7C%20%5E12.0-red)](https://laravel.com)
 
 ## 🚀 Why Diffyne?
 
@@ -57,7 +57,7 @@ class Counter extends Component
 
 **Usage:**
 ```blade
-<diffyne:counter />
+@diffyne('Counter')
 ```
 
 When the button is clicked, Diffyne sends only the minimal patch (~50 bytes) instead of the full HTML (~400 bytes)!
@@ -80,10 +80,10 @@ When the button is clicked, Diffyne sends only the minimal patch (~50 bytes) ins
 <input diffyne:model.live.debounce.300="search">
 
 {{-- Form with validation --}}
-<form diffyne:submit.prevent="submit">
-    <input diffyne:model.defer="email">
+<form diffyne:submit="submit">
+    <input diffyne:model="email">
     <span diffyne:error="email"></span>
-    <button type="submit" diffyne:loading.attr="disabled">Submit</button>
+    <button type="submit" diffyne:loading.class.opacity-50>Submit</button>
 </form>
 ```
 

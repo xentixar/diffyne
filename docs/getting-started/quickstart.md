@@ -84,13 +84,7 @@ Open `resources/views/diffyne/counter.blade.php`:
 Add the component to any Blade view:
 
 ```blade
-<diffyne:counter />
-```
-
-Or with kebab-case:
-
-```blade
-<x-diffyne.counter />
+@diffyne('Counter')
 ```
 
 ## 5. See It In Action
