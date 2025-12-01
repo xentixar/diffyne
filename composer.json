@@ -1,10 +1,17 @@
 {
     "name": "diffyne/diffyne",
+    "description": "A blazing-fast, server-driven UI framework for PHP with Virtual DOM and Delta Rendering Engine",
     "type": "library",
     "license": "MIT",
+    "keywords": ["laravel", "virtual-dom", "reactive", "components", "ui", "framework"],
     "autoload": {
         "psr-4": {
-            "Diffyne\\Diffyne\\": "src/"
+            "Diffyne\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Diffyne\\Tests\\": "tests/"
         }
     },
     "authors": [
@@ -14,5 +21,26 @@
             "role": "Software Engineer"
         }
     ],
-    "require": {}
+    "require": {
+        "php": "^8.1|^8.2|^8.3|^8.4",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/view": "^10.0|^11.0|^12.0",
+        "illuminate/routing": "^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^10.0|^11.0|^12.0"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Diffyne\\DiffyneServiceProvider"
+            ],
+            "aliases": {
+                "Diffyne": "Diffyne\\Facades\\Diffyne"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

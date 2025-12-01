@@ -1,0 +1,724 @@
+/**
+ * Diffyne - Client-side Virtual DOM Patcher
+ * Handles component hydration, event binding, and DOM patching
+ */
+
+class Diffyne {
+    constructor(config = {}) {
+        this.config = {
+            transport: config.transport || 'ajax',
+            wsUrl: config.wsUrl || 'ws://localhost:8080/diffyne',
+            endpoint: config.endpoint || '/_diffyne',
+            debug: config.debug || false,
+            ...config
+        };
+
+        this.components = new Map();
+        this.ws = null;
+        this.requestQueue = [];
+        this.processing = false;
+
+        this.init();
+    }
+
+    /**
+     * Initialize Diffyne
+     */
+    init() {
+        this.log('Initializing Diffyne...');
+
+        if (this.config.transport === 'websocket') {
+            this.connectWebSocket();
+        }
+
+        // Hydrate all components on page load
+        this.hydrateComponents();
+
+        // Set up mutation observer for dynamic components
+        this.observeDOMChanges();
+    }
+
+    /**
+     * Hydrate all Diffyne components in the DOM
+     */
+    hydrateComponents() {
+        const elements = document.querySelectorAll('[diffyne\\:id]');
+        
+        elements.forEach(element => {
+            const id = element.getAttribute('diffyne:id');
+            const componentClass = element.getAttribute('diffyne:class');
+            const componentName = element.getAttribute('diffyne:name');
+            const state = this.parseJSON(element.getAttribute('diffyne:state') || '{}');
+            const fingerprint = element.getAttribute('diffyne:fingerprint');
+
+            this.components.set(id, {
+                id,
+                componentClass,
+                componentName,
+                element,
+                state,
+                fingerprint,
+                vdom: this.buildVDOM(element),
+            });
+
+            this.bindEvents(element, id);
+            this.log(`Hydrated component: ${id} (${componentName})`);
+        });
+    }
+
+    /**
+     * Build Virtual DOM representation from actual DOM
+     */
+    buildVDOM(element) {
+        // Simplified VDOM for client-side tracking
+        return {
+            tag: element.tagName.toLowerCase(),
+            attrs: this.getAttributes(element),
+            children: Array.from(element.childNodes).map(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    return { type: 'text', value: node.textContent };
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    return this.buildVDOM(node);
+                }
+                return null;
+            }).filter(Boolean)
+        };
+    }
+
+    /**
+     * Get all attributes from an element
+     */
+    getAttributes(element) {
+        const attrs = {};
+        Array.from(element.attributes).forEach(attr => {
+            attrs[attr.name] = attr.value;
+        });
+        return attrs;
+    }
+
+    /**
+     * Bind event listeners for diffyne: directives using event delegation
+     */
+    bindEvents(element, componentId) {
+        // Use event delegation on the wrapper element
+        const wrapper = element;
+        
+        // Check if already delegated
+        if (wrapper.hasAttribute('data-diffyne-delegated')) {
+            return;
+        }
+        wrapper.setAttribute('data-diffyne-delegated', 'true');
+
+        // Click events (delegated)
+        wrapper.addEventListener('click', (e) => {
+            const target = e.target.closest('[diffyne\\:click]');
+            if (target && wrapper.contains(target)) {
+                const action = target.getAttribute('diffyne:click');
+                this.handleAction(componentId, action, e);
+            }
+        });
+
+        // Change events (delegated)
+        wrapper.addEventListener('change', (e) => {
+            const target = e.target.closest('[diffyne\\:change]');
+            if (target && wrapper.contains(target)) {
+                const action = target.getAttribute('diffyne:change');
+                this.handleAction(componentId, action, e);
+            }
+        });
+
+        // Model binding (delegated on input/change)
+        wrapper.addEventListener('input', (e) => {
+            const target = e.target;
+            if (target.hasAttribute('diffyne:model')) {
+                const property = target.getAttribute('diffyne:model');
+                const modifiers = this.parseModifiers(property);
+                
+                // Store the handler on the element to maintain debounce state
+                if (!target._diffyneModelHandler) {
+                    let handler = (value) => this.handleModelUpdate(componentId, modifiers.property, value);
+                    
+                    if (modifiers.debounce) {
+                        handler = this.debounce(handler, modifiers.debounce);
+                    }
+                    
+                    target._diffyneModelHandler = handler;
+                }
+                
+                target._diffyneModelHandler(target.value);
+            }
+        });
+
+        wrapper.addEventListener('change', (e) => {
+            const target = e.target;
+            if (target.hasAttribute('diffyne:model')) {
+                const property = target.getAttribute('diffyne:model');
+                const modifiers = this.parseModifiers(property);
+                
+                // For lazy updates or select/checkbox/radio
+                if (modifiers.lazy || target.tagName === 'SELECT' || target.type === 'checkbox' || target.type === 'radio') {
+                    this.handleModelUpdate(componentId, modifiers.property, target.value);
+                }
+            }
+        });
+
+        // Submit events (delegated)
+        wrapper.addEventListener('submit', (e) => {
+            const target = e.target.closest('[diffyne\\:submit]');
+            if (target && wrapper.contains(target)) {
+                e.preventDefault();
+                const action = target.getAttribute('diffyne:submit');
+                this.handleAction(componentId, action, e);
+            }
+        });
+
+        // Poll directives (set up once on hydration)
+        wrapper.querySelectorAll('[diffyne\\:poll]').forEach(el => {
+            if (el.hasAttribute('data-diffyne-poll-bound')) return;
+            el.setAttribute('data-diffyne-poll-bound', 'true');
+            
+            const interval = parseInt(el.getAttribute('diffyne:poll')) || 2000;
+            const action = el.getAttribute('diffyne:poll.action') || 'refresh';
+            
+            setInterval(() => {
+                this.handleAction(componentId, action);
+            }, interval);
+        });
+    }
+
+    /**
+     * Parse modifiers from directive (e.g., "search.live.debounce.300ms")
+     */
+    parseModifiers(directive) {
+        const parts = directive.split('.');
+        const property = parts[0];
+        const mods = {
+            property,
+            live: parts.includes('live'),
+            lazy: parts.includes('lazy'),
+            debounce: null
+        };
+
+        // Extract debounce value
+        const debounceIdx = parts.findIndex(p => p === 'debounce');
+        if (debounceIdx >= 0 && parts[debounceIdx + 1]) {
+            mods.debounce = parseInt(parts[debounceIdx + 1]);
+        } else if (mods.live) {
+            mods.debounce = 150; // Default debounce for live updates
+        }
+
+        return mods;
+    }
+
+    /**
+     * Get the appropriate event type for model binding
+     */
+    getModelEventType(element, modifiers) {
+        if (modifiers.lazy) return 'change';
+        
+        const tag = element.tagName.toLowerCase();
+        const type = element.type;
+
+        if (tag === 'select' || type === 'checkbox' || type === 'radio') {
+            return 'change';
+        }
+
+        return 'input';
+    }
+
+    /**
+     * Handle action (method call)
+     */
+    async handleAction(componentId, action, event = null) {
+        const [method, ...args] = this.parseAction(action);
+        
+        this.log(`Action: ${method}`, args);
+
+        await this.callMethod(componentId, method, args);
+    }
+
+    /**
+     * Handle model property update
+     */
+    async handleModelUpdate(componentId, property, value) {
+        this.log(`Model update: ${property} = ${value}`);
+
+        await this.updateProperty(componentId, property, value);
+    }
+
+    /**
+     * Parse action string to extract method and parameters
+     */
+    parseAction(action) {
+        const match = action.match(/^(\w+)(?:\((.*)\))?$/);
+        
+        if (!match) return [action];
+
+        const method = match[1];
+        const paramsStr = match[2];
+
+        if (!paramsStr) return [method];
+
+        // Parse parameters (basic implementation)
+        const params = paramsStr.split(',').map(p => {
+            p = p.trim();
+            // Handle strings
+            if (p.startsWith("'") || p.startsWith('"')) {
+                return p.slice(1, -1);
+            }
+            // Handle numbers
+            if (!isNaN(p)) return Number(p);
+            // Handle booleans
+            if (p === 'true') return true;
+            if (p === 'false') return false;
+            return p;
+        });
+
+        return [method, ...params];
+    }
+
+    /**
+     * Call a component method
+     */
+    async callMethod(componentId, method, params = []) {
+        const component = this.components.get(componentId);
+        if (!component) return;
+
+        this.showLoading(component.element);
+
+        try {
+            const response = await this.request({
+                type: 'call',
+                componentId,
+                componentClass: component.componentClass,
+                componentName: component.componentName,
+                method,
+                params,
+                state: component.state,
+                fingerprint: component.fingerprint,
+                previousHtml: component.element.firstElementChild?.innerHTML || ''
+            });
+
+            this.applyPatches(componentId, response);
+        } catch (error) {
+            this.handleError(error);
+        } finally {
+            this.hideLoading(component.element);
+        }
+    }
+
+    /**
+     * Update a component property
+     */
+    async updateProperty(componentId, property, value) {
+        const component = this.components.get(componentId);
+        if (!component) return;
+
+        // Optimistic update
+        component.state[property] = value;
+
+        try {
+            const response = await this.request({
+                type: 'update',
+                componentId,
+                componentClass: component.componentClass,
+                componentName: component.componentName,
+                property,
+                value,
+                state: component.state,
+                fingerprint: component.fingerprint,
+                previousHtml: component.element.firstElementChild?.innerHTML || ''
+            });
+
+            this.applyPatches(componentId, response);
+        } catch (error) {
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Send request to server
+     */
+    async request(payload) {
+        if (this.config.transport === 'websocket') {
+            return this.sendWebSocket(payload);
+        } else {
+            return this.sendAjax(payload);
+        }
+    }
+
+    /**
+     * Send AJAX request
+     */
+    async sendAjax(payload) {
+        const response = await fetch(this.config.endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': this.getCsrfToken()
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
+     * Send WebSocket message
+     */
+    sendWebSocket(payload) {
+        return new Promise((resolve, reject) => {
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                reject(new Error('WebSocket not connected'));
+                return;
+            }
+
+            const requestId = this.generateId();
+            payload.requestId = requestId;
+
+            // Set up one-time listener for response
+            const handler = (event) => {
+                const response = JSON.parse(event.data);
+                if (response.requestId === requestId) {
+                    this.ws.removeEventListener('message', handler);
+                    resolve(response);
+                }
+            };
+
+            this.ws.addEventListener('message', handler);
+            this.ws.send(JSON.stringify(payload));
+
+            // Timeout after 30 seconds
+            setTimeout(() => {
+                this.ws.removeEventListener('message', handler);
+                reject(new Error('Request timeout'));
+            }, 30000);
+        });
+    }
+
+    /**
+     * Connect to WebSocket server
+     */
+    connectWebSocket() {
+        this.log('Connecting to WebSocket...');
+
+        this.ws = new WebSocket(this.config.wsUrl);
+
+        this.ws.onopen = () => {
+            this.log('WebSocket connected');
+        };
+
+        this.ws.onclose = () => {
+            this.log('WebSocket disconnected');
+            // Reconnect after 3 seconds
+            setTimeout(() => this.connectWebSocket(), 3000);
+        };
+
+        this.ws.onerror = (error) => {
+            this.log('WebSocket error:', error);
+        };
+    }
+
+    /**
+     * Apply patches to the DOM
+     */
+    applyPatches(componentId, response) {
+        const component = this.components.get(componentId);
+        if (!component) return;
+
+        const { patches, state, fingerprint } = response.component;
+
+        this.log(`Applying ${patches.length} patches to ${componentId}`, patches);
+
+        const contentRoot = component.element.firstElementChild;
+        if (!contentRoot) {
+            this.log('No content root found in component wrapper');
+            return;
+        }
+
+        patches.forEach(patch => {
+            this.applyPatch(contentRoot, patch);
+        });
+
+        // Update component metadata
+        component.state = state;
+        component.fingerprint = fingerprint;
+        component.element.setAttribute('diffyne:state', JSON.stringify(state));
+        component.element.setAttribute('diffyne:fingerprint', fingerprint);
+    }
+
+    /**
+     * Apply a single patch to the DOM
+     */
+    applyPatch(root, patch) {
+        const { type, path, data } = patch;
+        const target = this.getNodeByPath(root, path);
+
+        if (!target) {
+            this.log('Target node not found for path:', path);
+            return;
+        }
+
+        switch (type) {
+            case 'create':
+                this.patchCreate(target, data);
+                break;
+            case 'remove':
+                this.patchRemove(target);
+                break;
+            case 'replace':
+                this.patchReplace(target, data);
+                break;
+            case 'update_text':
+                this.patchUpdateText(target, data);
+                break;
+            case 'update_attrs':
+                this.patchUpdateAttrs(target, data);
+                break;
+            case 'reorder':
+                this.patchReorder(target, data);
+                break;
+        }
+    }
+
+    /**
+     * Get DOM node by path array (skipping whitespace-only text nodes)
+     */
+    getNodeByPath(root, path) {
+        let node = root;
+
+        for (const index of path) {
+            if (!node) return null;
+            
+            // Get non-whitespace children only
+            const meaningfulChildren = Array.from(node.childNodes).filter(child => {
+                if (child.nodeType === Node.TEXT_NODE) {
+                    return child.textContent.trim() !== '';
+                }
+                return true;
+            });
+            
+            if (!meaningfulChildren[index]) {
+                return null;
+            }
+            
+            node = meaningfulChildren[index];
+        }
+
+        return node;
+    }
+
+    /**
+     * Patch: Create new node
+     */
+    patchCreate(parent, data) {
+        const newNode = this.vnodeToDOM(data.node);
+        parent.appendChild(newNode);
+    }
+
+    /**
+     * Patch: Remove node
+     */
+    patchRemove(node) {
+        node.parentNode?.removeChild(node);
+    }
+
+    /**
+     * Patch: Replace node
+     */
+    patchReplace(oldNode, data) {
+        const newNode = this.vnodeToDOM(data.node);
+        oldNode.parentNode?.replaceChild(newNode, oldNode);
+    }
+
+    /**
+     * Patch: Update text content
+     */
+    patchUpdateText(node, data) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            node.textContent = data.text;
+        }
+    }
+
+    /**
+     * Patch: Update attributes
+     */
+    patchUpdateAttrs(element, data) {
+        // Set/update attributes
+        Object.entries(data.set || {}).forEach(([key, value]) => {
+            element.setAttribute(key, value);
+        });
+
+        // Remove attributes
+        (data.remove || []).forEach(key => {
+            element.removeAttribute(key);
+        });
+    }
+
+    /**
+     * Patch: Reorder children
+     */
+    patchReorder(parent, data) {
+        // Simple implementation: reorder keyed children
+        data.moves.forEach(move => {
+            const node = parent.childNodes[move.from];
+            if (node) {
+                parent.insertBefore(node, parent.childNodes[move.to]);
+            }
+        });
+    }
+
+    /**
+     * Convert VNode to actual DOM node
+     */
+    vnodeToDOM(vnode) {
+        if (vnode.type === 'text') {
+            return document.createTextNode(vnode.text);
+        }
+
+        if (vnode.type === 'element') {
+            const element = document.createElement(vnode.tag);
+
+            // Set attributes
+            Object.entries(vnode.attributes || {}).forEach(([key, value]) => {
+                element.setAttribute(key, value);
+            });
+
+            // Add children
+            (vnode.children || []).forEach(child => {
+                element.appendChild(this.vnodeToDOM(child));
+            });
+
+            return element;
+        }
+
+        return document.createTextNode('');
+    }
+
+    /**
+     * Show loading state
+     */
+    showLoading(element) {
+        element.querySelectorAll('[diffyne\\:loading]').forEach(el => {
+            const directive = el.getAttribute('diffyne:loading');
+            
+            if (directive.includes('class')) {
+                const className = directive.split('.').pop();
+                el.classList.add(className);
+            } else {
+                el.style.opacity = '0.5';
+                el.style.pointerEvents = 'none';
+            }
+        });
+    }
+
+    /**
+     * Hide loading state
+     */
+    hideLoading(element) {
+        element.querySelectorAll('[diffyne\\:loading]').forEach(el => {
+            const directive = el.getAttribute('diffyne:loading');
+            
+            if (directive.includes('class')) {
+                const className = directive.split('.').pop();
+                el.classList.remove(className);
+            } else {
+                el.style.opacity = '';
+                el.style.pointerEvents = '';
+            }
+        });
+    }
+
+    /**
+     * Observe DOM changes for dynamically added components
+     */
+    observeDOMChanges() {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const newComponents = node.querySelectorAll('[diffyne\\:id]');
+                        newComponents.forEach(el => this.hydrateComponent(el));
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    /**
+     * Helper: Debounce function
+     */
+    debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    /**
+     * Helper: Parse JSON safely
+     */
+    parseJSON(str) {
+        try {
+            return JSON.parse(str);
+        } catch {
+            return {};
+        }
+    }
+
+    /**
+     * Helper: Get CSRF token
+     */
+    getCsrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
+
+    /**
+     * Helper: Generate random ID
+     */
+    generateId() {
+        return 'req-' + Math.random().toString(36).substr(2, 9);
+    }
+
+    /**
+     * Helper: Log debug messages
+     */
+    log(...args) {
+        if (this.config.debug) {
+            console.log('[Diffyne]', ...args);
+        }
+    }
+
+    /**
+     * Handle errors
+     */
+    handleError(error) {
+        console.error('[Diffyne Error]', error);
+    }
+}
+
+// Auto-initialize if config is present
+if (typeof window !== 'undefined') {
+    window.Diffyne = Diffyne;
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const config = window.diffyneConfig || {};
+        window.diffyne = new Diffyne(config);
+    });
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Diffyne;
+}

@@ -1,8 +1,30 @@
 # Diffyne
+
 A blazing-fast, server-driven UI framework for PHP powered by a lightweight **Virtual DOM + Diff Engine** (Delta Rendering Engine).  
 Diffyne lets you build dynamic interfaces with the simplicity of Blade/PHP components — but with the rendering efficiency of modern SPA frameworks.
 
 It delivers **minimal DOM updates**, optional **WebSocket sync**, and full compatibility with **Alpine.js**.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue)](https://php.net)
+[![Laravel Version](https://img.shields.io/badge/laravel-%5E10.0%20%7C%20%5E11.0-red)](https://laravel.com)
+
+---
+
+## 🎯 Current Status
+
+**✅ Version 1.0 - Core Features Complete**
+
+- ✅ Virtual DOM engine with diff algorithm
+- ✅ Component lifecycle hooks
+- ✅ State management and hydration
+- ✅ Full directive system (`diffyne:click`, `diffyne:model`, etc.)
+- ✅ AJAX transport layer
+- ✅ Laravel service provider integration
+- ✅ Artisan commands (`make:diffyne`, `diffyne:install`)
+- ✅ Client-side JavaScript runtime
+- 🚧 WebSocket transport (planned)
+- 🚧 Testing utilities (in progress)
 
 ---
 
@@ -30,22 +52,49 @@ Perfect for dashboards, forms, CRUDs, or real-time UIs.
 
 # 📦 Installation
 
-### 1. Install via Composer
+### 1. Require via Composer
+
 ```bash
 composer require diffyne/diffyne
+```
+
+Or for local development, add to your `composer.json`:
+
+```json
+{
+    "repositories": [
+        {
+            "type": "path",
+            "url": "./packages/diffyne"
+        }
+    ]
+}
 ````
 
-### 2. Publish assets + config
+
+### 2. Install assets and configuration
 
 ```bash
 php artisan diffyne:install
 ```
 
-### 3. Load the frontend script
+This will:
+- Publish `config/diffyne.php`
+- Publish JavaScript to `public/vendor/diffyne/`
+- Create component directories
+- Optionally create example Counter component
 
-```html
-<script src="/vendor/diffyne/diffyne.js" defer></script>
+### 3. Add to your layout
+
+In your main layout (e.g., `resources/views/layouts/app.blade.php`), add before `</body>`:
+
+```blade
+@diffyneScripts
 ```
+
+**Done!** You're ready to create components.
+
+📚 **[Read the full Quick Start Guide →](USAGE.md)**
 
 ---
 
