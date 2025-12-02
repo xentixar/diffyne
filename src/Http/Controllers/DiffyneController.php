@@ -113,7 +113,7 @@ class DiffyneController extends Controller
             // Render updates and generate patches
             $response = $this->renderer->renderUpdate($component, $previousHtml);
 
-            return response()->json($this->serializer->toResponse($response));
+            return response()->json($this->serializer->toResponse($response, config('diffyne.performance.minify_patches', true)));
 
         } catch (ValidationException $e) {
             // Return validation errors
