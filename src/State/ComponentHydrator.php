@@ -11,15 +11,15 @@ class ComponentHydrator
      */
     public function hydrate(string $componentClass, array $state, string $id): Component
     {
-        if (!class_exists($componentClass)) {
+        if (! class_exists($componentClass)) {
             throw new \InvalidArgumentException("Component class [{$componentClass}] does not exist.");
         }
 
-        if (!is_subclass_of($componentClass, Component::class)) {
+        if (! is_subclass_of($componentClass, Component::class)) {
             throw new \InvalidArgumentException("Class [{$componentClass}] must extend Diffyne\\Component.");
         }
 
-        $component = new $componentClass();
+        $component = new $componentClass;
         $component->id = $id;
         $component->restoreState($state);
         $component->hydrate();
@@ -48,15 +48,15 @@ class ComponentHydrator
      */
     public function mount(string $componentClass, array $params = []): Component
     {
-        if (!class_exists($componentClass)) {
+        if (! class_exists($componentClass)) {
             throw new \InvalidArgumentException("Component class [{$componentClass}] does not exist.");
         }
 
-        if (!is_subclass_of($componentClass, Component::class)) {
+        if (! is_subclass_of($componentClass, Component::class)) {
             throw new \InvalidArgumentException("Class [{$componentClass}] must extend Diffyne\\Component.");
         }
 
-        $component = new $componentClass();
+        $component = new $componentClass;
 
         // Set initial properties from parameters
         foreach ($params as $key => $value) {

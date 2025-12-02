@@ -11,7 +11,9 @@ class VNode
      * Node type constants.
      */
     public const TYPE_ELEMENT = 'element';
+
     public const TYPE_TEXT = 'text';
+
     public const TYPE_COMMENT = 'comment';
 
     /**
@@ -188,7 +190,7 @@ class VNode
         if ($this->isElement()) {
             $data['tag'] = $this->tag;
             $data['attributes'] = $this->attributes;
-            $data['children'] = array_map(fn($child) => $child->toArray(), $this->children);
+            $data['children'] = array_map(fn ($child) => $child->toArray(), $this->children);
         } elseif ($this->isText()) {
             $data['text'] = $this->text;
         } elseif ($this->isComment()) {
@@ -209,19 +211,19 @@ class VNode
     {
         if ($this->isElement()) {
             $data = ['t' => $this->tag];
-            
-            if (!empty($this->attributes)) {
+
+            if (! empty($this->attributes)) {
                 $data['a'] = $this->attributes;
             }
-            
-            if (!empty($this->children)) {
-                $data['c'] = array_map(fn($child) => $child->toMinimal(), $this->children);
+
+            if (! empty($this->children)) {
+                $data['c'] = array_map(fn ($child) => $child->toMinimal(), $this->children);
             }
-            
+
             if ($this->key !== null) {
                 $data['k'] = $this->key;
             }
-            
+
             return $data;
         } elseif ($this->isText()) {
             return ['x' => $this->text];

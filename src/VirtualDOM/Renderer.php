@@ -13,6 +13,7 @@ use Illuminate\View\View as IlluminateView;
 class Renderer
 {
     protected HTMLParser $parser;
+
     protected DiffEngine $diffEngine;
 
     /**
@@ -22,8 +23,8 @@ class Renderer
 
     public function __construct()
     {
-        $this->parser = new HTMLParser();
-        $this->diffEngine = new DiffEngine();
+        $this->parser = new HTMLParser;
+        $this->diffEngine = new DiffEngine;
     }
 
     /**
@@ -33,7 +34,7 @@ class Renderer
     {
         $html = $this->renderComponentView($component);
         $vdom = $this->parser->parse($html);
-        
+
         // Store snapshot for future diffs
         $this->snapshots[$component->id] = $vdom;
 
@@ -92,14 +93,14 @@ class Renderer
 
         if ($view instanceof IlluminateView) {
             // Pass component state and errors to the view
-            $errorBag = new ViewErrorBag();
+            $errorBag = new ViewErrorBag;
             $errorBag->put('default', $component->getErrorBag());
-            
+
             $data = array_merge(
                 $component->getState(),
                 ['errors' => $errorBag]
             );
-            
+
             return $view->with($data)->render();
         }
 

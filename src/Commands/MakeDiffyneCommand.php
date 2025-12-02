@@ -30,9 +30,10 @@ class MakeDiffyneCommand extends Command
 
         // Create component class
         $classPath = $this->getClassPath($className, $baseNamespace);
-        
+
         if (File::exists($classPath)) {
             $this->error("Component [{$className}] already exists!");
+
             return self::FAILURE;
         }
 
@@ -56,7 +57,7 @@ class MakeDiffyneCommand extends Command
         $this->newLine();
         $this->line("Component <fg=green>{$className}</> created successfully!");
         $this->newLine();
-        $this->line("Usage in Blade:");
+        $this->line('Usage in Blade:');
         $this->line("  <fg=cyan>@diffyne('{$name}')</>");
         $this->newLine();
 
@@ -71,7 +72,7 @@ class MakeDiffyneCommand extends Command
         // Handle nested paths (e.g., "Forms/LoginForm" -> "LoginForm")
         $parts = explode('/', $name);
         $className = end($parts);
-        
+
         return str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $className)));
     }
 
@@ -82,10 +83,10 @@ class MakeDiffyneCommand extends Command
     {
         // Convert to kebab-case and preserve path separators
         $parts = explode('/', $name);
-        $parts = array_map(function($part) {
+        $parts = array_map(function ($part) {
             return strtolower(str_replace(' ', '-', preg_replace('/(?<!^)[A-Z]/', '-$0', $part)));
         }, $parts);
-        
+
         return implode('/', $parts);
     }
 
@@ -96,16 +97,17 @@ class MakeDiffyneCommand extends Command
     {
         $name = $this->argument('name');
         $relativePath = str_replace('\\', '/', str_replace('App\\', '', $namespace));
-        
+
         // Handle nested paths
         $parts = explode('/', $name);
         if (count($parts) > 1) {
             // Remove the class name from parts to get the subdirectory
             array_pop($parts);
             $subPath = implode('/', $parts);
+
             return app_path("{$relativePath}/{$subPath}/{$className}.php");
         }
-        
+
         return app_path("{$relativePath}/{$className}.php");
     }
 
@@ -116,14 +118,15 @@ class MakeDiffyneCommand extends Command
     {
         $name = $this->argument('name');
         $parts = explode('/', $name);
-        
+
         if (count($parts) > 1) {
             // Remove the class name from parts
             array_pop($parts);
             $subNamespace = implode('\\', $parts);
-            return $baseNamespace . '\\' . $subNamespace;
+
+            return $baseNamespace.'\\'.$subNamespace;
         }
-        
+
         return $baseNamespace;
     }
 
@@ -132,8 +135,8 @@ class MakeDiffyneCommand extends Command
      */
     protected function getClassStub(string $className, string $namespace): string
     {
-        $stub = File::get(__DIR__ . '/../../stubs/component.stub');
-        
+        $stub = File::get(__DIR__.'/../../stubs/component.stub');
+
         return str_replace(
             ['DummyNamespace', 'DummyClass'],
             [$namespace, $className],
@@ -146,8 +149,8 @@ class MakeDiffyneCommand extends Command
      */
     protected function getViewStub(string $className): string
     {
-        $stub = File::get(__DIR__ . '/../../stubs/view.stub');
-        
+        $stub = File::get(__DIR__.'/../../stubs/view.stub');
+
         return str_replace('DummyClass', $className, $stub);
     }
 }

@@ -9,7 +9,9 @@ use Illuminate\Contracts\Foundation\Application;
 class DiffyneManager
 {
     protected Application $app;
+
     protected Renderer $renderer;
+
     protected ComponentHydrator $hydrator;
 
     /**
@@ -38,8 +40,8 @@ class DiffyneManager
     public function mount(string $component, array $params = []): string
     {
         $componentClass = $this->resolveComponent($component);
-        
-        if (!$componentClass) {
+
+        if (! $componentClass) {
             throw new \InvalidArgumentException("Component [{$component}] not found.");
         }
 
@@ -58,7 +60,7 @@ class DiffyneManager
         if (isset($this->components[$component])) {
             return $this->components[$component];
         }
-        
+
         // Check if it's a fully qualified class name
         if (class_exists($component)) {
             return $component;
@@ -67,7 +69,7 @@ class DiffyneManager
         // Try to find in default namespace (support nested paths with forward slashes)
         $defaultNamespace = config('diffyne.component_namespace', 'App\\Diffyne');
         $componentPath = str_replace('/', '\\', $component);
-        $fullClass = $defaultNamespace . '\\' . $componentPath;
+        $fullClass = $defaultNamespace.'\\'.$componentPath;
 
         if (class_exists($fullClass)) {
             return $fullClass;
@@ -85,10 +87,10 @@ class DiffyneManager
         $html = $rendered['html'];
         $state = htmlspecialchars(json_encode($rendered['state']), ENT_QUOTES, 'UTF-8');
         $fingerprint = $rendered['fingerprint'];
-        
+
         // For nested components, use the full path as component name
         $namespace = config('diffyne.component_namespace', 'App\\Diffyne');
-        $componentName = str_replace($namespace . '\\', '', $componentClass);
+        $componentName = str_replace($namespace.'\\', '', $componentClass);
         $componentName = str_replace('\\', '/', $componentName);
 
         return <<<HTML

@@ -2,11 +2,11 @@
 
 namespace Diffyne;
 
-use Diffyne\Commands\MakeDiffyneCommand;
 use Diffyne\Commands\DiffyneInstallCommand;
 use Diffyne\Commands\DiffyneServeCommand;
-use Diffyne\VirtualDOM\Renderer;
+use Diffyne\Commands\MakeDiffyneCommand;
 use Diffyne\State\ComponentHydrator;
+use Diffyne\VirtualDOM\Renderer;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -20,17 +20,17 @@ class DiffyneServiceProvider extends ServiceProvider
     {
         // Merge package config
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/diffyne.php',
+            __DIR__.'/../config/diffyne.php',
             'diffyne'
         );
 
         // Register singletons
         $this->app->singleton(Renderer::class, function ($app) {
-            return new Renderer();
+            return new Renderer;
         });
 
         $this->app->singleton(ComponentHydrator::class, function ($app) {
-            return new ComponentHydrator();
+            return new ComponentHydrator;
         });
 
         // Register Diffyne facade
@@ -46,21 +46,21 @@ class DiffyneServiceProvider extends ServiceProvider
     {
         // Publish config
         $this->publishes([
-            __DIR__ . '/../config/diffyne.php' => config_path('diffyne.php'),
+            __DIR__.'/../config/diffyne.php' => config_path('diffyne.php'),
         ], 'diffyne-config');
 
         // Publish JavaScript assets
         $this->publishes([
-            __DIR__ . '/../public/js/diffyne.js' => public_path('vendor/diffyne/diffyne.js'),
+            __DIR__.'/../public/js/diffyne.js' => public_path('vendor/diffyne/diffyne.js'),
         ], 'diffyne-assets');
 
         // Publish views
         $this->publishes([
-            __DIR__ . '/../resources/views' => resource_path('views/vendor/diffyne'),
+            __DIR__.'/../resources/views' => resource_path('views/vendor/diffyne'),
         ], 'diffyne-views');
 
         // Load views
-        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'diffyne');
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'diffyne');
 
         // Register routes
         $this->registerRoutes();
@@ -87,7 +87,7 @@ class DiffyneServiceProvider extends ServiceProvider
             'prefix' => config('diffyne.route_prefix', '_diffyne'),
             'middleware' => config('diffyne.middleware', ['web']),
         ], function () {
-            $this->loadRoutesFrom(__DIR__ . '/../routes/diffyne.php');
+            $this->loadRoutesFrom(__DIR__.'/../routes/diffyne.php');
         });
     }
 

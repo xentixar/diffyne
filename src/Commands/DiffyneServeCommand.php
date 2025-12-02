@@ -26,15 +26,15 @@ class DiffyneServeCommand extends Command
         $host = $this->option('host');
         $port = $this->option('port');
 
-        $this->info("Diffyne WebSocket Server");
+        $this->info('Diffyne WebSocket Server');
         $this->newLine();
         $this->line("Starting WebSocket server on {$host}:{$port}...");
         $this->newLine();
-        $this->warn("⚠️  WebSocket server is currently not implemented.");
-        $this->warn("    This feature is planned for a future release.");
+        $this->warn('⚠️  WebSocket server is currently not implemented.');
+        $this->warn('    This feature is planned for a future release.');
         $this->newLine();
-        $this->line("For now, Diffyne uses AJAX transport mode by default.");
-        $this->line("To use AJAX mode, ensure your config is set to:");
+        $this->line('For now, Diffyne uses AJAX transport mode by default.');
+        $this->line('To use AJAX mode, ensure your config is set to:');
         $this->line("  <fg=cyan>'transport' => 'ajax'</> in config/diffyne.php");
         $this->newLine();
 

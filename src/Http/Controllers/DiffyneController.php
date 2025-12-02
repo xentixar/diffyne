@@ -4,8 +4,8 @@ namespace Diffyne\Http\Controllers;
 
 use BadMethodCallException;
 use Diffyne\State\ComponentHydrator;
-use Diffyne\VirtualDOM\Renderer;
 use Diffyne\VirtualDOM\PatchSerializer;
+use Diffyne\VirtualDOM\Renderer;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +17,9 @@ use InvalidArgumentException;
 class DiffyneController extends Controller
 {
     protected ComponentHydrator $hydrator;
+
     protected Renderer $renderer;
+
     protected PatchSerializer $serializer;
 
     public function __construct(
@@ -43,7 +45,7 @@ class DiffyneController extends Controller
             $previousHtml = $request->input('previousHtml');
 
             // Validate request
-            if (!$componentId || !$state) {
+            if (! $componentId || ! $state) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Invalid request',
@@ -53,7 +55,7 @@ class DiffyneController extends Controller
             // Get component class from state or registry
             $componentClass = $this->resolveComponentClass($request);
 
-            if (!$componentClass) {
+            if (! $componentClass) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Component class not found',
@@ -73,8 +75,8 @@ class DiffyneController extends Controller
                 case 'call':
                     $method = $request->input('method');
                     $params = $request->input('params', []);
-                    
-                    if (!$method) {
+
+                    if (! $method) {
                         return response()->json([
                             'success' => false,
                             'error' => 'Method not specified',
@@ -87,8 +89,8 @@ class DiffyneController extends Controller
                 case 'update':
                     $property = $request->input('property');
                     $value = $request->input('value');
-                    
-                    if (!$property) {
+
+                    if (! $property) {
                         return response()->json([
                             'success' => false,
                             'error' => 'Property not specified',
@@ -136,13 +138,13 @@ class DiffyneController extends Controller
                 'type' => 'property_error',
             ], 400);
         } catch (Exception $e) {
-            Log::error('Diffyne Error: ' . $e->getMessage(), [
+            Log::error('Diffyne Error: '.$e->getMessage(), [
                 'exception' => get_class($e),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             if (config('diffyne.debug', false)) {
                 return response()->json([
                     's' => false,
@@ -177,12 +179,12 @@ class DiffyneController extends Controller
 
         // Try to get from component name
         $componentName = $request->input('componentName');
-        
+
         if ($componentName) {
             $defaultNamespace = config('diffyne.component_namespace', 'App\\Diffyne');
-            
+
             $componentName = str_replace('/', '\\', $componentName);
-            $fullClass = $defaultNamespace . '\\' . $componentName;
+            $fullClass = $defaultNamespace.'\\'.$componentName;
 
             if (class_exists($fullClass)) {
                 return $fullClass;

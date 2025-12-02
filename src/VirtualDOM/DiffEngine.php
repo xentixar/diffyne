@@ -11,10 +11,15 @@ class DiffEngine
      * Patch type constants.
      */
     public const PATCH_CREATE = 'create';
+
     public const PATCH_REMOVE = 'remove';
+
     public const PATCH_REPLACE = 'replace';
+
     public const PATCH_UPDATE_TEXT = 'update_text';
+
     public const PATCH_UPDATE_ATTRS = 'update_attrs';
+
     public const PATCH_REORDER = 'reorder';
 
     /**
@@ -44,12 +49,14 @@ class DiffEngine
             $this->addPatch(self::PATCH_CREATE, $path, [
                 'node' => $newNode->toMinimal(),
             ]);
+
             return;
         }
 
         // Case 2: Node removed
         if ($oldNode !== null && $newNode === null) {
             $this->addPatch(self::PATCH_REMOVE, $path);
+
             return;
         }
 
@@ -63,6 +70,7 @@ class DiffEngine
             $this->addPatch(self::PATCH_REPLACE, $path, [
                 'node' => $newNode->toMinimal(),
             ]);
+
             return;
         }
 
@@ -71,6 +79,7 @@ class DiffEngine
             $this->addPatch(self::PATCH_REPLACE, $path, [
                 'node' => $newNode->toMinimal(),
             ]);
+
             return;
         }
 
@@ -79,14 +88,15 @@ class DiffEngine
             $this->addPatch(self::PATCH_UPDATE_TEXT, $path, [
                 'text' => $newNode->text,
             ]);
+
             return;
         }
 
         // Case 7: Element attributes changed
         if ($oldNode->isElement() && $newNode->isElement()) {
             $attrChanges = $this->diffAttributes($oldNode->attributes, $newNode->attributes);
-            
-            if (!empty($attrChanges)) {
+
+            if (! empty($attrChanges)) {
                 $this->addPatch(self::PATCH_UPDATE_ATTRS, $path, $attrChanges);
             }
 
@@ -107,14 +117,14 @@ class DiffEngine
 
         // Find attributes to set or update
         foreach ($newAttrs as $key => $value) {
-            if (!isset($oldAttrs[$key]) || $oldAttrs[$key] !== $value) {
+            if (! isset($oldAttrs[$key]) || $oldAttrs[$key] !== $value) {
                 $changes['set'][$key] = $value;
             }
         }
 
         // Find attributes to remove
         foreach ($oldAttrs as $key => $value) {
-            if (!isset($newAttrs[$key])) {
+            if (! isset($newAttrs[$key])) {
                 $changes['remove'][] = $key;
             }
         }
@@ -140,8 +150,9 @@ class DiffEngine
         $oldKeyed = $this->extractKeyedNodes($oldChildren);
         $newKeyed = $this->extractKeyedNodes($newChildren);
 
-        if (!empty($oldKeyed) && !empty($newKeyed)) {
+        if (! empty($oldKeyed) && ! empty($newKeyed)) {
             $this->diffKeyedChildren($oldChildren, $newChildren, $parentPath, $oldKeyed, $newKeyed);
+
             return;
         }
 
@@ -175,7 +186,7 @@ class DiffEngine
 
             if ($key !== null && isset($oldKeyed[$key])) {
                 $oldPosition = $oldKeyed[$key];
-                
+
                 if ($oldPosition !== $i) {
                     $moves[] = [
                         'key' => $key,
@@ -198,13 +209,13 @@ class DiffEngine
 
         // Find removed keyed nodes
         foreach ($oldKeyed as $key => $position) {
-            if (!isset($newKeyed[$key])) {
+            if (! isset($newKeyed[$key])) {
                 $this->diffNodes($oldChildren[$position], null, [...$parentPath, $position]);
             }
         }
 
         // Add reorder patch if there are moves
-        if (!empty($moves)) {
+        if (! empty($moves)) {
             $this->addPatch(self::PATCH_REORDER, $parentPath, [
                 'moves' => $moves,
             ]);
@@ -267,6 +278,7 @@ class DiffEngine
                     return false;
                 }
             }
+
             return true;
         });
     }

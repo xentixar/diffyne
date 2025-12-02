@@ -5,7 +5,6 @@ namespace Diffyne;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\Str;
-use Illuminate\Support\ViewErrorBag;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use ReflectionClass;
@@ -51,7 +50,7 @@ abstract class Component
     public function __construct()
     {
         $this->id = $this->generateId();
-        $this->errorBag = new MessageBag();
+        $this->errorBag = new MessageBag;
         $this->initializeProperties();
     }
 
@@ -60,7 +59,7 @@ abstract class Component
      */
     protected function generateId(): string
     {
-        return 'diffyne-' . Str::random(16);
+        return 'diffyne-'.Str::random(16);
     }
 
     /**
@@ -73,7 +72,7 @@ abstract class Component
         $properties = $reflection->getProperties(ReflectionProperty::IS_PUBLIC);
 
         foreach ($properties as $property) {
-            if (!$property->isStatic() && $property->getName() !== 'id') {
+            if (! $property->isStatic() && $property->getName() !== 'id') {
                 $this->tracked[] = $property->getName();
             }
         }
@@ -91,7 +90,7 @@ abstract class Component
     {
         $class = str_replace('\\', '/', static::class);
         $name = Str::kebab(class_basename($class));
-        
+
         return "diffyne.{$name}";
     }
 
@@ -140,7 +139,7 @@ abstract class Component
      */
     public function updateProperty(string $property, mixed $value): void
     {
-        if (!property_exists($this, $property)) {
+        if (! property_exists($this, $property)) {
             throw new \InvalidArgumentException("Property [{$property}] does not exist on component.");
         }
 
@@ -149,9 +148,9 @@ abstract class Component
         }
 
         $this->updating($property, $value);
-        
+
         $this->$property = $value;
-        
+
         $this->updated($property);
     }
 
@@ -160,7 +159,7 @@ abstract class Component
      */
     public function callMethod(string $method, array $params = []): mixed
     {
-        if (!method_exists($this, $method)) {
+        if (! method_exists($this, $method)) {
             throw new \BadMethodCallException("Method [{$method}] does not exist on component.");
         }
 
@@ -206,10 +205,6 @@ abstract class Component
     /**
      * Validate component properties.
      *
-     * @param array|null $rules
-     * @param array $messages
-     * @param array $attributes
-     * @return array
      * @throws ValidationException
      */
     protected function validate(?array $rules = null, array $messages = [], array $attributes = []): array
@@ -228,6 +223,7 @@ abstract class Component
         try {
             $validated = $validator->validate();
             $this->resetValidation();
+
             return $validated;
         } catch (ValidationException $e) {
             $this->errorBag = $e->validator->errors();
@@ -237,15 +233,12 @@ abstract class Component
 
     /**
      * Validate a single property.
-     *
-     * @param string $field
-     * @return void
      */
     protected function validateOnly(string $field): void
     {
         $rules = $this->rules();
-        
-        if (!isset($rules[$field])) {
+
+        if (! isset($rules[$field])) {
             return;
         }
 
@@ -266,18 +259,18 @@ abstract class Component
     /**
      * Reset validation for specific fields or all fields.
      *
-     * @param string|array|null $field
-     * @return void
+     * @param  string|array|null  $field
      */
     protected function resetValidation($field = null): void
     {
         if ($field === null) {
-            $this->errorBag = new MessageBag();
+            $this->errorBag = new MessageBag;
+
             return;
         }
 
         $fields = is_array($field) ? $field : [$field];
-        
+
         foreach ($fields as $f) {
             $this->errorBag->forget($f);
         }
@@ -286,8 +279,7 @@ abstract class Component
     /**
      * Alias for resetValidation().
      *
-     * @param string|array|null $field
-     * @return void
+     * @param  string|array|null  $field
      */
     protected function resetErrorBag($field = null): void
     {
@@ -296,10 +288,6 @@ abstract class Component
 
     /**
      * Add a validation error.
-     *
-     * @param string $field
-     * @param string $message
-     * @return void
      */
     protected function addError(string $field, string $message): void
     {
@@ -308,8 +296,6 @@ abstract class Component
 
     /**
      * Get the validation rules.
-     *
-     * @return array
      */
     protected function rules(): array
     {
@@ -318,8 +304,6 @@ abstract class Component
 
     /**
      * Get custom validation messages.
-     *
-     * @return array
      */
     protected function messages(): array
     {
@@ -328,8 +312,6 @@ abstract class Component
 
     /**
      * Get custom validation attributes.
-     *
-     * @return array
      */
     protected function validationAttributes(): array
     {
@@ -338,8 +320,6 @@ abstract class Component
 
     /**
      * Get the error bag.
-     *
-     * @return MessageBag
      */
     public function getErrorBag(): MessageBag
     {
@@ -348,9 +328,6 @@ abstract class Component
 
     /**
      * Set the error bag (for hydration).
-     *
-     * @param array $errors
-     * @return void
      */
     public function setErrorBag(array $errors): void
     {
@@ -365,7 +342,7 @@ abstract class Component
         $state = [];
 
         foreach ($this->tracked as $property) {
-            if (!in_array($property, $this->hidden) && property_exists($this, $property)) {
+            if (! in_array($property, $this->hidden) && property_exists($this, $property)) {
                 $state[$property] = $this->$property;
             }
         }
@@ -379,16 +356,16 @@ abstract class Component
     public function restoreState(array $state): void
     {
         foreach ($state as $property => $value) {
-            if (property_exists($this, $property) && !in_array($property, $this->hidden)) {
+            if (property_exists($this, $property) && ! in_array($property, $this->hidden)) {
                 try {
                     $this->$property = $value;
                 } catch (TypeError $e) {
                     $reflection = new ReflectionProperty($this, $property);
                     $type = $reflection->getType();
-                    
-                    if ($type && !$type->allowsNull() && $value === null) {
+
+                    if ($type && ! $type->allowsNull() && $value === null) {
                         $typeName = $type instanceof ReflectionNamedType ? $type->getName() : 'mixed';
-                        $this->$property = match($typeName) {
+                        $this->$property = match ($typeName) {
                             'string' => '',
                             'int' => 0,
                             'float' => 0.0,
@@ -422,7 +399,7 @@ abstract class Component
         $changes = [];
 
         foreach ($current as $key => $value) {
-            if (!isset($this->previousState[$key]) || $this->previousState[$key] !== $value) {
+            if (! isset($this->previousState[$key]) || $this->previousState[$key] !== $value) {
                 $changes[$key] = [
                     'old' => $this->previousState[$key] ?? null,
                     'new' => $value,

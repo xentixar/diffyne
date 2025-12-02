@@ -14,7 +14,7 @@ class PatchSerializer
     {
         $options = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
 
-        if (!$minify) {
+        if (! $minify) {
             $options |= JSON_PRETTY_PRINT;
         }
 
@@ -29,7 +29,7 @@ class PatchSerializer
         $patches = json_decode($json, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \InvalidArgumentException('Invalid JSON: ' . json_last_error_msg());
+            throw new \InvalidArgumentException('Invalid JSON: '.json_last_error_msg());
         }
 
         return $patches ?? [];
@@ -41,12 +41,12 @@ class PatchSerializer
     public function toResponse(array $response, bool $minify = true): array
     {
         $patches = $response['patches'] ?? [];
-        
+
         // Minify patches if requested
         if ($minify) {
             $patches = $this->minifyPatches($patches);
         }
-        
+
         $result = [
             's' => true, // success
             'c' => [ // component
@@ -56,11 +56,11 @@ class PatchSerializer
                 'f' => $response['fingerprint'] ?? null, // fingerprint
             ],
         ];
-        
-        if (isset($response['errors']) && !empty($response['errors'])) {
+
+        if (isset($response['errors']) && ! empty($response['errors'])) {
             $result['c']['e'] = $response['errors'];
         }
-        
+
         return $result;
     }
 
@@ -74,11 +74,11 @@ class PatchSerializer
                 't' => $this->minifyType($patch['type']),
                 'p' => $patch['path'],
             ];
-            
+
             if (isset($patch['data'])) {
                 $minified['d'] = $this->minifyData($patch['type'], $patch['data']);
             }
-            
+
             return $minified;
         }, $patches);
     }
@@ -88,7 +88,7 @@ class PatchSerializer
      */
     protected function minifyType(string $type): string
     {
-        return match($type) {
+        return match ($type) {
             'create' => 'c',
             'remove' => 'r',
             'replace' => 'R',
@@ -107,17 +107,18 @@ class PatchSerializer
         switch ($type) {
             case 'update_text':
                 return ['x' => $data['text']];
-                
+
             case 'update_attrs':
                 $minified = [];
-                if (!empty($data['set'])) {
+                if (! empty($data['set'])) {
                     $minified['s'] = $data['set'];
                 }
-                if (!empty($data['remove'])) {
+                if (! empty($data['remove'])) {
                     $minified['r'] = $data['remove'];
                 }
+
                 return $minified;
-                
+
             default:
                 return $data;
         }

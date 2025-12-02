@@ -2,11 +2,11 @@
 
 namespace Diffyne\VirtualDOM;
 
+use DOMComment;
 use DOMDocument;
+use DOMElement;
 use DOMNode;
 use DOMText;
-use DOMComment;
-use DOMElement;
 
 /**
  * Parser to convert HTML strings to Virtual DOM nodes.
@@ -19,18 +19,18 @@ class HTMLParser
     public function parse(string $html): VNode
     {
         // Wrap in a root element to handle fragments
-        $html = '<div>' . $html . '</div>';
+        $html = '<div>'.$html.'</div>';
 
         $dom = new DOMDocument('1.0', 'UTF-8');
-        
+
         // Suppress warnings for malformed HTML
         libxml_use_internal_errors(true);
-        
+
         $dom->loadHTML(
-            '<?xml encoding="UTF-8">' . $html,
+            '<?xml encoding="UTF-8">'.$html,
             LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
         );
-        
+
         libxml_clear_errors();
 
         $root = $this->convertDOMNode($dom->documentElement);
@@ -93,7 +93,7 @@ class HTMLParser
 
         foreach ($element->childNodes as $child) {
             $vnode = $this->convertDOMNode($child);
-            
+
             // Skip empty text nodes (whitespace only)
             if ($vnode->isText() && trim($vnode->text) === '') {
                 continue;
@@ -110,6 +110,6 @@ class HTMLParser
      */
     public function parseFragments(array $htmlStrings): array
     {
-        return array_map(fn($html) => $this->parse($html), $htmlStrings);
+        return array_map(fn ($html) => $this->parse($html), $htmlStrings);
     }
 }
