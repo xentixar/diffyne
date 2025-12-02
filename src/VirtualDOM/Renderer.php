@@ -56,7 +56,7 @@ class Renderer
 
         // Parse the previous HTML if provided
         $oldVdom = null;
-        if ($previousHtml) {
+        if ($previousHtml && trim($previousHtml) !== '') {
             $oldVdom = $this->parser->parse($previousHtml);
         }
 
@@ -75,6 +75,12 @@ class Renderer
         // Include errors if any exist
         if ($component->getErrorBag()->isNotEmpty()) {
             $result['errors'] = $component->getErrorBag()->toArray();
+        }
+
+        // Include query string for URL-bound properties
+        $queryString = $component->getQueryString();
+        if (!empty($queryString)) {
+            $result['queryString'] = $queryString;
         }
 
         return $result;

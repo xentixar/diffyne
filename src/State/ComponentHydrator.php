@@ -58,6 +58,9 @@ class ComponentHydrator
 
         $component = new $componentClass;
 
+        // Sync URL-bound properties from query string
+        $this->syncFromQueryString($component);
+
         // Set initial properties from parameters
         foreach ($params as $key => $value) {
             if (property_exists($component, $key)) {
@@ -69,5 +72,22 @@ class ComponentHydrator
         $component->snapshot();
 
         return $component;
+    }
+
+    /**
+     * Sync component properties from URL query string.
+     */
+    protected function syncFromQueryString(Component $component): void
+    {
+        $urlProperties = $component->getUrlProperties();
+        
+        foreach ($urlProperties as $property => $config) {
+            $queryKey = $config['as'];
+            $value = request()->query($queryKey);
+            
+            if ($value !== null && property_exists($component, $property)) {
+                $component->$property = $value;
+            }
+        }
     }
 }

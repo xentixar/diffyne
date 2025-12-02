@@ -36,6 +36,12 @@ class Diffyne {
 
         // Set up mutation observer for dynamic components
         this.observeDOMChanges();
+
+        // Handle browser back/forward navigation
+        window.addEventListener('popstate', () => {
+            this.log('Browser navigation detected, reloading page');
+            window.location.reload();
+        });
     }
 
     /**
@@ -61,6 +67,9 @@ class Diffyne {
                 vdom: this.buildVDOM(element),
                 errors: {},
             });
+
+            // Sync model inputs with initial state
+            this.syncModelInputs(element, state);
 
             this.bindEvents(element, id);
             this.log(`Hydrated component: ${id} (${componentName})`);
@@ -333,7 +342,7 @@ class Diffyne {
                 params,
                 state: component.state,
                 fingerprint: component.fingerprint,
-                previousHtml: component.element.firstElementChild?.innerHTML || '',
+                previousHtml: component.element.firstElementChild?.outerHTML || '',
                 errors: component.errors || {}
             });
 
@@ -371,7 +380,7 @@ class Diffyne {
                 value,
                 state: component.state,
                 fingerprint: component.fingerprint,
-                previousHtml: component.element.firstElementChild?.innerHTML || '',
+                previousHtml: component.element.firstElementChild?.outerHTML || '',
                 errors: component.errors || {}
             });
 
@@ -499,6 +508,7 @@ class Diffyne {
         const state = componentData.st || componentData.state;
         const fingerprint = componentData.f || componentData.fingerprint;
         const errors = componentData.e || componentData.errors;
+        const queryString = componentData.q || componentData.queryString;
 
         this.log(`Applying ${patches.length} patches to ${componentId}`, patches);
 
@@ -508,9 +518,21 @@ class Diffyne {
             return;
         }
 
-        patches.forEach(patch => {
-            this.applyPatch(contentRoot, patch);
-        });
+        // Check if this is a full content replacement (CREATE patch at root with empty path)
+        if (patches.length === 1 && 
+            (patches[0].t === 'c' || patches[0].type === 'create') && 
+            (patches[0].p?.length === 0 || patches[0].path?.length === 0)) {
+            // Replace entire content
+            const patch = patches[0];
+            const data = patch.d || patch.data;
+            const newContent = this.vnodeToDOM(data.node);
+            component.element.replaceChild(newContent, contentRoot);
+        } else {
+            // Apply individual patches
+            patches.forEach(patch => {
+                this.applyPatch(contentRoot, patch);
+            });
+        }
 
         // Update component metadata only if state is provided
         if (state) {
@@ -524,6 +546,11 @@ class Diffyne {
         if (fingerprint) {
             component.fingerprint = fingerprint;
             component.element.setAttribute('diffyne:fingerprint', fingerprint);
+        }
+
+        // Update URL query string if provided
+        if (queryString) {
+            this.updateQueryString(queryString);
         }
 
         if (errors) {
@@ -1021,6 +1048,27 @@ class Diffyne {
     getCsrfToken() {
         const meta = document.querySelector('meta[name="csrf-token"]');
         return meta ? meta.getAttribute('content') : '';
+    }
+
+    /**
+     * Update URL query string
+     */
+    updateQueryString(params) {
+        const url = new URL(window.location);
+        
+        // Clear existing params and set new ones
+        Object.keys(params).forEach(key => {
+            if (params[key] !== null && params[key] !== '' && params[key] !== undefined) {
+                url.searchParams.set(key, params[key]);
+            } else {
+                url.searchParams.delete(key);
+            }
+        });
+        
+        // Update URL without page reload
+        window.history.pushState({}, '', url);
+        
+        this.log('Updated URL query string:', params);
     }
 
     /**

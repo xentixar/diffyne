@@ -61,6 +61,11 @@ class PatchSerializer
             $result['c']['e'] = $response['errors'];
         }
 
+        // Include URL query string if component has URL-bound properties
+        if (isset($response['queryString'])) {
+            $result['c']['q'] = $response['queryString'];
+        }
+
         return $result;
     }
 

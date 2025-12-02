@@ -2,6 +2,7 @@
 
 namespace Diffyne;
 
+use Diffyne\Attributes\QueryString;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\Str;
@@ -33,6 +34,11 @@ abstract class Component
      * Component properties that should be tracked for changes.
      */
     protected array $tracked = [];
+
+    /**
+     * Component properties that should be synced with URL query string.
+     */
+    protected array $urlProperties = [];
 
     /**
      * Previous state snapshot for diff calculation.
@@ -74,6 +80,17 @@ abstract class Component
         foreach ($properties as $property) {
             if (! $property->isStatic() && $property->getName() !== 'id') {
                 $this->tracked[] = $property->getName();
+                
+                // Check for QueryString attribute
+                $attributes = $property->getAttributes(QueryString::class);
+                if (!empty($attributes)) {
+                    $urlAttr = $attributes[0]->newInstance();
+                    $this->urlProperties[$property->getName()] = [
+                        'as' => $urlAttr->as ?? $property->getName(),
+                        'history' => $urlAttr->history,
+                        'keep' => $urlAttr->keep,
+                    ];
+                }
             }
         }
     }
@@ -432,6 +449,36 @@ abstract class Component
     public function hasChanged(): bool
     {
         return $this->fingerprint !== $this->calculateFingerprint();
+    }
+
+    /**
+     * Get URL-bound properties configuration.
+     */
+    public function getUrlProperties(): array
+    {
+        return $this->urlProperties;
+    }
+
+    /**
+     * Get query string parameters from URL-bound properties.
+     */
+    public function getQueryString(): array
+    {
+        $query = [];
+        
+        foreach ($this->urlProperties as $property => $config) {
+            $value = $this->$property ?? null;
+            $key = $config['as'];
+            
+            // Skip empty values unless keep is true
+            if (!$config['keep'] && ($value === null || $value === '')) {
+                continue;
+            }
+            
+            $query[$key] = $value;
+        }
+        
+        return $query;
     }
 
     /**
