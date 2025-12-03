@@ -109,6 +109,9 @@ return [
         'cache_rendered_views' => env('DIFFYNE_CACHE_VIEWS', true),
         'minify_patches' => env('DIFFYNE_MINIFY_PATCHES', true),
         'debounce_default' => 150, // milliseconds
+        'max_request_size' => 512 * 1024, // 512KB max request
+        'enable_compression' => env('DIFFYNE_COMPRESSION', true),
+        'snapshot_cache_size' => 100, // Max components to cache snapshots for
     ],
 
 ];

@@ -49,16 +49,12 @@ class Renderer
     /**
      * Re-render a component and generate patches.
      */
-    public function renderUpdate(Component $component, ?string $previousHtml = null): array
+    public function renderUpdate(Component $component): array
     {
         $html = $this->renderComponentView($component);
         $newVdom = $this->parser->parse($html);
 
         $oldVdom = $this->snapshots[$component->id] ?? null;
-        
-        if ($oldVdom === null && $previousHtml && trim($previousHtml) !== '') {
-            $oldVdom = $this->parser->parse($previousHtml);
-        }
 
         // Generate patches
         $patches = $this->diffEngine->diff($oldVdom, $newVdom);
@@ -69,7 +65,6 @@ class Renderer
         $result = [
             'id' => $component->id,
             'patches' => $patches,
-            'html' => $html,
             'state' => $component->getState(),
             'fingerprint' => $component->calculateFingerprint(),
         ];

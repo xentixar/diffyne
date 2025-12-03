@@ -17,6 +17,7 @@ class Diffyne {
         this.ws = null;
         this.requestQueue = [];
         this.processing = false;
+        this.lazyLoadQueue = [];
 
         this.init();
     }
@@ -33,6 +34,9 @@ class Diffyne {
 
         // Hydrate all components on page load
         this.hydrateComponents();
+
+        // Load lazy components after a short delay
+        setTimeout(() => this.loadLazyComponents(), 100);
 
         // Set up mutation observer for dynamic components
         this.observeDOMChanges();
@@ -51,6 +55,11 @@ class Diffyne {
         const elements = document.querySelectorAll('[diff\\:id]');
         
         elements.forEach(element => {
+            // Skip lazy components - they will be loaded separately
+            if (element.hasAttribute('data-diffyne-lazy')) {
+                return;
+            }
+
             const id = element.getAttribute('diff:id');
             const componentClass = element.getAttribute('diff:class');
             const componentName = element.getAttribute('diff:name');
@@ -74,6 +83,91 @@ class Diffyne {
             this.bindEvents(element, id);
             this.log(`Hydrated component: ${id} (${componentName})`);
         });
+    }
+
+    /**
+     * Load all lazy components
+     */
+    loadLazyComponents() {
+        const lazyElements = document.querySelectorAll('[data-diffyne-lazy]');
+        
+        lazyElements.forEach(element => {
+            this.loadLazyComponent(element);
+        });
+    }
+
+    /**
+     * Load a single lazy component
+     */
+    async loadLazyComponent(element) {
+        const id = element.getAttribute('diff:id');
+        const componentClass = element.getAttribute('diff:class');
+        const componentName = element.getAttribute('diff:name');
+        const params = this.parseJSON(element.getAttribute('diff:params') || '{}');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryParams = {};
+        for (const [key, value] of urlParams) {
+            queryParams[key] = value;
+        }
+
+        this.log(`Loading lazy component: ${id} (${componentName})`);
+
+        try {
+            const response = await fetch(`${this.config.endpoint}/lazy`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': this.getCsrfToken(),
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    componentClass,
+                    componentId: id,
+                    params,
+                    queryParams,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Update element attributes
+                element.setAttribute('diff:state', JSON.stringify(data.state));
+                element.setAttribute('diff:fingerprint', data.fingerprint);
+                element.removeAttribute('data-diffyne-lazy');
+                element.setAttribute('data-diffyne-loaded', '');
+                
+                // Replace content
+                element.innerHTML = data.html;
+
+                // Register component
+                this.components.set(id, {
+                    id,
+                    componentClass,
+                    componentName,
+                    element,
+                    state: data.state,
+                    fingerprint: data.fingerprint,
+                    vdom: this.buildVDOM(element),
+                    errors: {},
+                });
+
+                // Sync model inputs
+                this.syncModelInputs(element, data.state);
+
+                // Bind events
+                this.bindEvents(element, id);
+
+                this.log(`Lazy component loaded: ${id} (${componentName})`);
+            } else {
+                console.error('Failed to load lazy component:', data.error);
+                element.innerHTML = `<div style="color: red; padding: 1rem;">Failed to load component: ${data.error}</div>`;
+            }
+        } catch (error) {
+            console.error('Error loading lazy component:', error);
+            element.innerHTML = `<div style="color: red; padding: 1rem;">Error loading component</div>`;
+        }
     }
 
     /**
@@ -337,12 +431,10 @@ class Diffyne {
                 type: 'call',
                 componentId,
                 componentClass: component.componentClass,
-                componentName: component.componentName,
                 method,
                 params,
                 state: component.state,
-                fingerprint: component.fingerprint,
-                errors: component.errors || {}
+                fingerprint: component.fingerprint
             });
 
             this.applyPatches(componentId, response);
@@ -374,12 +466,10 @@ class Diffyne {
                 type: 'update',
                 componentId,
                 componentClass: component.componentClass,
-                componentName: component.componentName,
                 property,
                 value,
                 state: component.state,
-                fingerprint: component.fingerprint,
-                errors: component.errors || {}
+                fingerprint: component.fingerprint
             });
 
             this.applyPatches(componentId, response);

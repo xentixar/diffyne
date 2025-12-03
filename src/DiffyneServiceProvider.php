@@ -85,7 +85,10 @@ class DiffyneServiceProvider extends ServiceProvider
     {
         Route::group([
             'prefix' => config('diffyne.route_prefix', '_diffyne'),
-            'middleware' => config('diffyne.middleware', ['web']),
+            'middleware' => array_merge(
+                config('diffyne.middleware', ['web']),
+                [\Diffyne\Http\Middleware\OptimizeDiffyneResponse::class]
+            ),
         ], function () {
             $this->loadRoutesFrom(__DIR__.'/../routes/diffyne.php');
         });
