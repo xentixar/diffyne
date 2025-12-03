@@ -3,10 +3,13 @@
  * Handles event binding and delegation (Single Responsibility)
  */
 
+import { debounce } from '../utils/helpers.js';
+
 export class EventBinder {
-    constructor(actionHandler, modelHandler) {
+    constructor(actionHandler, modelHandler, localStateHandler) {
         this.actionHandler = actionHandler;
         this.modelHandler = modelHandler;
+        this.localStateHandler = localStateHandler;
     }
 
     /**
@@ -69,13 +72,16 @@ export class EventBinder {
                         let handler = (value) => this.modelHandler(componentId, modifiers.property, value);
                         
                         if (modifiers.debounce) {
-                            handler = this.debounce(handler, modifiers.debounce);
+                            handler = debounce(handler, modifiers.debounce);
                         }
                         
                         target._diffyneModelHandler = handler;
                     }
                     
                     target._diffyneModelHandler(target.value);
+                } else {
+                    // Just update local state without sending request
+                    this.localStateHandler(componentId, modifiers.property, target.value);
                 }
             }
         });
@@ -92,6 +98,9 @@ export class EventBinder {
                 if (modifiers.lazy || target.tagName === 'SELECT' || 
                     target.type === 'checkbox' || target.type === 'radio') {
                     this.modelHandler(componentId, modifiers.property, target.value);
+                } else if (!modifiers.live) {
+                    // Update local state for non-live inputs on change
+                    this.localStateHandler(componentId, modifiers.property, target.value);
                 }
             }
         });
@@ -158,16 +167,5 @@ export class EventBinder {
         }
 
         return mods;
-    }
-
-    /**
-     * Debounce function
-     */
-    debounce(func, wait) {
-        let timeout;
-        return function(...args) {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), wait);
-        };
     }
 }

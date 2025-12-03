@@ -2,9 +2,9 @@
 
 namespace Diffyne;
 
-use Diffyne\Commands\DiffyneInstallCommand;
-use Diffyne\Commands\DiffyneServeCommand;
-use Diffyne\Commands\MakeDiffyneCommand;
+use Diffyne\Console\Commands\DiffyneInstallCommand;
+use Diffyne\Console\Commands\MakeDiffyneCommand;
+use Diffyne\Console\Commands\DiffyneWebSocketCommand;
 use Diffyne\State\ComponentHydrator;
 use Diffyne\VirtualDOM\Renderer;
 use Illuminate\Support\Facades\Blade;
@@ -73,7 +73,7 @@ class DiffyneServiceProvider extends ServiceProvider
             $this->commands([
                 MakeDiffyneCommand::class,
                 DiffyneInstallCommand::class,
-                DiffyneServeCommand::class,
+                DiffyneWebSocketCommand::class,
             ]);
         }
     }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Diffyne\Commands;
+namespace Diffyne\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;

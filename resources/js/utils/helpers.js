@@ -71,6 +71,32 @@ export function getQueryParams() {
 }
 
 /**
+ * Get CSRF token from meta tag
+ */
+export function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+/**
+ * Generate random ID
+ */
+export function generateId() {
+    return 'req-' + Math.random().toString(36).substr(2, 9);
+}
+
+/**
+ * Debounce function
+ */
+export function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+/**
  * Logger utility
  */
 export class Logger {

@@ -36,7 +36,8 @@ export class Diffyne {
         // Initialize event binder with handlers
         this.eventBinder = new EventBinder(
             (id, action, event) => this.handleAction(id, action, event),
-            (id, property, value) => this.handleModelUpdate(id, property, value)
+            (id, property, value) => this.handleModelUpdate(id, property, value),
+            (id, property, value) => this.updateLocalState(id, property, value)
         );
 
         this.init();
@@ -175,11 +176,24 @@ export class Diffyne {
     }
 
     /**
-     * Handle model update
+     * Handle model update (with server sync)
      */
     async handleModelUpdate(componentId, property, value) {
         this.logger.log(`Model update: ${property} = ${value}`);
         await this.updateProperty(componentId, property, value);
+    }
+
+    /**
+     * Update local state only (no server request)
+     */
+    updateLocalState(componentId, property, value) {
+        const component = this.registry.get(componentId);
+        if (!component) return;
+
+        // Update local state
+        component.state[property] = value;
+        
+        this.logger.log(`Local state update: ${property} = ${value}`);
     }
 
     /**
@@ -247,7 +261,16 @@ export class Diffyne {
         const success = response.s !== undefined ? response.s : response.success;
         
         if (success && response.redirect) {
-            window.location.href = response.redirect.url;
+            const url = response.redirect.url;
+            const spa = response.redirect.spa !== undefined ? response.redirect.spa : true;
+            
+            if (spa) {
+                // SPA navigation - fetch and replace content
+                this.spaNavigate(url);
+            } else {
+                // Full page redirect
+                window.location.href = url;
+            }
             return;
         }
         
@@ -295,10 +318,24 @@ export class Diffyne {
     handleError(componentId, error) {
         const component = this.registry.get(componentId);
         
-        if (error.type === 'validation_error' && error.details?.errors) {
+        // Support both formats: errors at root or nested in details
+        const errors = error.details?.errors || error.details?.details?.errors;
+        
+        this.logger.log('handleError called:', {
+            componentId,
+            errorType: error.type,
+            hasDetails: !!error.details,
+            hasErrors: !!errors,
+            errors: errors
+        });
+        
+        if (error.type === 'validation_error' && errors) {
             if (component) {
-                component.setErrors(error.details.errors);
-                this.errorService.display(component.element, error.details.errors);
+                this.logger.log('Displaying validation errors:', errors);
+                component.setErrors(errors);
+                this.errorService.display(component.element, errors);
+            } else {
+                this.logger.error('Component not found for validation errors:', componentId);
             }
         } else {
             this.errorService.handle(error, this.config.debug);
@@ -324,6 +361,49 @@ export class Diffyne {
             childList: true,
             subtree: true
         });
+    }
+
+    /**
+     * Perform SPA navigation to a new URL
+     */
+    async spaNavigate(url) {
+        try {
+            this.logger.log('SPA navigation to:', url);
+
+            const response = await fetch(url, {
+                headers: {
+                    'Accept': 'text/html',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const html = await response.text();
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Update page title
+            document.title = doc.title;
+            
+            // Replace body content
+            document.body.innerHTML = doc.body.innerHTML;
+            
+            // Update URL
+            window.history.pushState({}, '', url);
+            
+            // Re-hydrate all components on the new page
+            this.registry.clear();
+            this.hydrateComponents();
+            
+            this.logger.log('SPA navigation completed');
+        } catch (error) {
+            this.logger.error('SPA navigation failed, falling back to full page reload:', error);
+            window.location.href = url;
+        }
     }
 }
 

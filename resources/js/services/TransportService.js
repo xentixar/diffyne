@@ -4,6 +4,8 @@
  * Supports AJAX and WebSocket transports
  */
 
+import { getCsrfToken, generateId, getQueryParams, Logger } from '../utils/helpers.js';
+
 export class TransportService {
     constructor(config) {
         this.config = config;
@@ -29,7 +31,7 @@ export class TransportService {
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': this.getCsrfToken()
+                'X-CSRF-TOKEN': getCsrfToken()
             },
             body: JSON.stringify(payload)
         });
@@ -56,19 +58,49 @@ export class TransportService {
                 return;
             }
 
-            const requestId = this.generateId();
-            payload.requestId = requestId;
+            const requestId = generateId();
+            
+            let event = 'diffyne.call';
+            if (payload.type === 'update') {
+                event = 'diffyne.update';
+            } else if (payload.type === 'call') {
+                event = 'diffyne.call';
+            }
+            
+            const message = {
+                event: event,
+                data: {
+                    ...payload,
+                    requestId: requestId
+                }
+            };
 
             const handler = (event) => {
-                const response = JSON.parse(event.data);
-                if (response.requestId === requestId) {
-                    this.ws.removeEventListener('message', handler);
-                    resolve(response);
+                try {
+                    const response = JSON.parse(event.data);
+                    
+                    if (response.event === 'diffyne.response' && 
+                        response.data?.requestId === requestId) {
+                        this.ws.removeEventListener('message', handler);
+                        
+                        const data = response.data;
+                        
+                        if (!data.s) {
+                            const error = new Error(data.error || 'WebSocket request failed');
+                            error.type = data.type;
+                            error.details = data;
+                            reject(error);
+                        } else {
+                            resolve(data);
+                        }
+                    }
+                } catch (e) {
+                    // Ignore parse errors for other messages
                 }
             };
 
             this.ws.addEventListener('message', handler);
-            this.ws.send(JSON.stringify(payload));
+            this.ws.send(JSON.stringify(message));
 
             setTimeout(() => {
                 this.ws.removeEventListener('message', handler);
@@ -81,10 +113,27 @@ export class TransportService {
      * Connect to WebSocket server
      */
     connectWebSocket(onOpen, onClose, onError) {
-        this.ws = new WebSocket(this.config.wsUrl);
+        const wsUrl = this.config.wsUrl || this.buildWebSocketUrl();
+        this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {
             if (onOpen) onOpen();
+        };
+
+        this.ws.onmessage = (event) => {
+            try {
+                const message = JSON.parse(event.data);
+                const logger = new Logger(this.config.debug);
+                if (message.event === 'diffyne.connected') {
+                    logger.log('[Diffyne WS] Connected:', message.data);
+                }
+                
+                if (message.event === 'diffyne.pong') {
+                    logger.log('[Diffyne WS] Pong received');
+                }
+            } catch (e) {
+                // Messages handled by request handlers
+            }
         };
 
         this.ws.onclose = () => {
@@ -98,6 +147,16 @@ export class TransportService {
     }
 
     /**
+     * Build WebSocket URL from config
+     */
+    buildWebSocketUrl() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.hostname;
+        const port = this.config.wsPort || 6001;
+        return `${protocol}//${host}:${port}`;
+    }
+
+    /**
      * Load lazy component
      */
     async loadLazy(componentClass, componentId, params, queryParams) {
@@ -105,7 +164,7 @@ export class TransportService {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': this.getCsrfToken(),
+                'X-CSRF-TOKEN': getCsrfToken(),
                 'Accept': 'application/json',
             },
             body: JSON.stringify({
@@ -117,20 +176,5 @@ export class TransportService {
         });
 
         return response.json();
-    }
-
-    /**
-     * Get CSRF token
-     */
-    getCsrfToken() {
-        const meta = document.querySelector('meta[name="csrf-token"]');
-        return meta ? meta.getAttribute('content') : '';
-    }
-
-    /**
-     * Generate random ID
-     */
-    generateId() {
-        return 'req-' + Math.random().toString(36).substr(2, 9);
     }
 }

@@ -8,8 +8,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Diffyne supports two transport modes:
-    | - 'ajax': Standard HTTP requests (default, production-ready)
-    | - 'websocket': Real-time WebSocket connections (experimental)
+    | - 'ajax': Standard HTTP requests (default)
+    | - 'websocket': Real-time WebSocket connections 
     |
     */
 
@@ -21,13 +21,19 @@ return [
     |--------------------------------------------------------------------------
     |
     | Configuration for WebSocket server when using 'websocket' transport mode.
+    | Uses Sockeon (https://sockeon.com) for high-performance WebSocket support.
     |
     */
 
     'websocket' => [
-        'host' => env('DIFFYNE_WS_HOST', '0.0.0.0'),
-        'port' => env('DIFFYNE_WS_PORT', 8080),
+        'host' => env('DIFFYNE_WS_HOST', '127.0.0.1'),
+        'port' => env('DIFFYNE_WS_PORT', 6001),
         'path' => env('DIFFYNE_WS_PATH', '/diffyne'),
+        'cors' => [
+            'allowed_origins' => explode(',', env('DIFFYNE_WS_CORS_ORIGINS', '*')),
+            'allowed_methods' => ['GET', 'POST', 'OPTIONS'],
+            'allowed_headers' => ['Content-Type', 'Authorization', 'X-CSRF-TOKEN'],
+        ],
     ],
 
     /*
