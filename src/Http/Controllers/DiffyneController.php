@@ -3,6 +3,7 @@
 namespace Diffyne\Http\Controllers;
 
 use BadMethodCallException;
+use Diffyne\Exceptions\RedirectException;
 use Diffyne\State\ComponentHydrator;
 use Diffyne\VirtualDOM\PatchSerializer;
 use Diffyne\VirtualDOM\Renderer;
@@ -115,6 +116,12 @@ class DiffyneController extends Controller
 
             return response()->json($this->serializer->toResponse($response, config('diffyne.performance.minify_patches', true)));
 
+        } catch (RedirectException $e) {
+            $redirectData = $e->getRedirectData();
+            return response()->json([
+                's' => true,
+                'redirect' => $redirectData['redirect'],
+            ]);
         } catch (ValidationException $e) {
             // Return validation errors
             return response()->json([

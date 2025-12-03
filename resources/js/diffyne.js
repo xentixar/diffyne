@@ -495,6 +495,12 @@ class Diffyne {
 
         // Support both minified and full response formats
         const success = response.s !== undefined ? response.s : response.success;
+        
+        if (success && response.redirect) {
+            this.handleRedirect(response.redirect);
+            return;
+        }
+        
         const componentData = response.c || response.component;
         
         if (!success || !componentData) {
@@ -1067,6 +1073,57 @@ class Diffyne {
         window.history.pushState({}, '', url);
         
         this.log('Updated URL query string:', params);
+    }
+
+    /**
+     * Handle redirect response
+     */
+    handleRedirect(redirect) {
+        const url = redirect.url;
+        const spa = redirect.spa !== undefined ? redirect.spa : true;
+        
+        this.log(`Redirecting to ${url} (SPA: ${spa})`);
+        
+        if (spa) {
+            this.spaNavigate(url);
+        } else {
+            window.location.href = url;
+        }
+    }
+
+    /**
+     * Perform SPA navigation to a new URL
+     */
+    async spaNavigate(url) {
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'Accept': 'text/html',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const html = await response.text();
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            document.title = doc.title;
+            
+            document.body.innerHTML = doc.body.innerHTML;
+            
+            window.history.pushState({}, '', url);
+            
+            this.hydrateComponents();
+            
+            this.log('SPA navigation completed');
+        } catch (error) {
+            this.log('SPA navigation failed, falling back to full page reload:', error);
+            window.location.href = url;
+        }
     }
 
     /**

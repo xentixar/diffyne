@@ -482,6 +482,39 @@ abstract class Component
     }
 
     /**
+     * Redirect to a URL using SPA navigation (client-side).
+     */
+    protected function redirect(string $url, bool $spa = true): never
+    {
+        $response = [
+            'redirect' => [
+                'url' => $url,
+                'spa' => $spa,
+            ],
+        ];
+
+        throw new \Diffyne\Exceptions\RedirectException($response);
+    }
+
+    /**
+     * Redirect to a route using SPA navigation.
+     */
+    protected function redirectRoute(string $name, array $parameters = [], bool $spa = true): never
+    {
+        $url = route($name, $parameters);
+        $this->redirect($url, $spa);
+    }
+
+    /**
+     * Redirect to the previous URL.
+     */
+    protected function redirectBack(bool $spa = true): never
+    {
+        $url = url()->previous();
+        $this->redirect($url, $spa);
+    }
+
+    /**
      * Convert the component to an array.
      */
     public function toArray(): array
