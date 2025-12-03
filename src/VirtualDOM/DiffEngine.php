@@ -176,6 +176,7 @@ class DiffEngine
         array $oldKeyed,
         array $newKeyed
     ): void {
+        // First, identify nodes to remove
         $toRemove = [];
         foreach ($oldKeyed as $key => $position) {
             if (! isset($newKeyed[$key])) {
@@ -183,22 +184,37 @@ class DiffEngine
             }
         }
         
+        // Remove in reverse order to avoid index shifting
         rsort($toRemove);
         foreach ($toRemove as $position) {
             $this->diffNodes($oldChildren[$position], null, [...$parentPath, $position]);
         }
 
+        // Process all new children in order
         foreach ($newChildren as $newIndex => $newChild) {
             $key = $newChild->key;
+            $oldChildAtIndex = $oldChildren[$newIndex] ?? null;
 
             if ($key !== null && isset($oldKeyed[$key])) {
+                // Node exists in old list
                 $oldPosition = $oldKeyed[$key];
-                $this->diffNodes(
-                    $oldChildren[$oldPosition],
-                    $newChild,
-                    [...$parentPath, $newIndex]
-                );
+                
+                // Check if the key at this position changed (reorder)
+                if ($oldChildAtIndex && $oldChildAtIndex->key !== $key) {
+                    // Position has different key - replace the node
+                    $this->addPatch(self::PATCH_REPLACE, [...$parentPath, $newIndex], [
+                        'node' => $newChild->toMinimal(),
+                    ]);
+                } else {
+                    // Same position or no old child - just diff content
+                    $this->diffNodes(
+                        $oldChildren[$oldPosition],
+                        $newChild,
+                        [...$parentPath, $newIndex]
+                    );
+                }
             } else {
+                // New node, create it
                 $this->diffNodes(null, $newChild, [...$parentPath, $newIndex]);
             }
         }
