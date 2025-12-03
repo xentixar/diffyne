@@ -72,8 +72,8 @@ class DiffyneInstallCommand extends Command
         $classPath = app_path('Diffyne/Counter.php');
         $viewPath = resource_path('views/diffyne/counter.blade.php');
 
-        File::put($classPath, File::get(__DIR__.'/../../stubs/counter.component.stub'));
-        File::put($viewPath, File::get(__DIR__.'/../../stubs/counter.view.stub'));
+        File::put($classPath, File::get(__DIR__.'/../../../stubs/counter.component.stub'));
+        File::put($viewPath, File::get(__DIR__.'/../../../stubs/counter.view.stub'));
 
         $this->info('✓ Counter example component created');
     }

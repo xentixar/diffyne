@@ -11,6 +11,7 @@ import { TransportService } from './services/TransportService.js';
 import { LoadingService } from './services/LoadingService.js';
 import { ErrorService } from './services/ErrorService.js';
 import { ModelSyncService } from './services/ModelSyncService.js';
+import { EventManager } from './services/EventManager.js';
 import { parseJSON, parseAction, updateQueryString, getQueryParams, Logger } from './utils/helpers.js';
 
 export class Diffyne {
@@ -25,13 +26,14 @@ export class Diffyne {
 
         // Initialize services (Dependency Injection)
         this.registry = new ComponentRegistry();
-        this.transport = new TransportService(this.config);
+        this.transport = new TransportService(this.config, this.logger);
         this.patchApplier = new PatchApplier();
         this.vNodeConverter = new VNodeConverter();
         this.loadingService = new LoadingService();
         this.errorService = new ErrorService();
         this.modelSync = new ModelSyncService();
         this.logger = new Logger(this.config.debug);
+        this.eventManager = new EventManager(this.registry, this.logger);
         
         // Initialize event binder with handlers
         this.eventBinder = new EventBinder(
@@ -60,6 +62,12 @@ export class Diffyne {
         this.hydrateComponents();
         setTimeout(() => this.loadLazyComponents(), 100);
         this.observeDOMChanges();
+
+        // Listen for custom action events from EventManager
+        document.addEventListener('diffyne:action', (e) => {
+            const { componentId, method, params } = e.detail;
+            this.handleAction(componentId, method, e);
+        });
 
         window.addEventListener('popstate', () => {
             this.logger.log('Browser navigation detected, reloading page');
@@ -91,6 +99,7 @@ export class Diffyne {
         const componentName = element.getAttribute('diff:name');
         const state = parseJSON(element.getAttribute('diff:state') || '{}');
         const fingerprint = element.getAttribute('diff:fingerprint');
+        const eventListeners = parseJSON(element.getAttribute('diff:listeners') || '{}');
 
         this.registry.register(id, {
             id,
@@ -104,6 +113,12 @@ export class Diffyne {
 
         this.modelSync.sync(element, state);
         this.eventBinder.bind(element, id);
+        this.eventManager.bindEventListeners(element, id);
+
+        // Register event listeners from #[On] attributes
+        if (eventListeners && Object.keys(eventListeners).length > 0) {
+            this.registerServerEventListeners(id, eventListeners);
+        }
         
         this.logger.log(`Hydrated component: ${id} (${componentName})`);
     }
@@ -155,6 +170,12 @@ export class Diffyne {
 
                 this.modelSync.sync(element, data.state);
                 this.eventBinder.bind(element, id);
+                this.eventManager.bindEventListeners(element, id);
+
+                // Register event listeners from #[On] attributes
+                if (data.eventListeners) {
+                    this.registerServerEventListeners(id, data.eventListeners);
+                }
 
                 this.logger.log(`Lazy component loaded: ${id} (${componentName})`);
             } else {
@@ -201,7 +222,9 @@ export class Diffyne {
      */
     async callMethod(componentId, method, params = []) {
         const component = this.registry.get(componentId);
-        if (!component) return;
+        if (!component) {
+            return;
+        }
 
         this.loadingService.show(component.element);
 
@@ -310,6 +333,16 @@ export class Diffyne {
             component.clearErrors();
             this.errorService.clear(component.element);
         }
+
+        // Handle dispatched events
+        if (response.events) {
+            this.eventManager.dispatchEvents(response.events);
+        }
+
+        // Handle browser events
+        if (response.browserEvents) {
+            this.eventManager.dispatchBrowserEvents(response.browserEvents);
+        }
     }
 
     /**
@@ -404,6 +437,24 @@ export class Diffyne {
             this.logger.error('SPA navigation failed, falling back to full page reload:', error);
             window.location.href = url;
         }
+    }
+
+    /**
+     * Register event listeners from server-side #[On] attributes
+     */
+    registerServerEventListeners(componentId, eventListeners) {
+        // eventListeners is an object: { 'event-name': ['methodName1', 'methodName2'] }
+        for (const [eventName, methods] of Object.entries(eventListeners)) {
+            methods.forEach(methodName => {
+                this.eventManager.on(componentId, eventName, async (...params) => {
+                    // Call the component method when event is triggered
+                    this.logger.log(`Event '${eventName}' triggered on component ${componentId}, calling ${methodName}`);
+                    await this.callMethod(componentId, methodName, params);
+                });
+            });
+        }
+        
+        this.logger.log(`Registered ${Object.keys(eventListeners).length} event listeners for component ${componentId}`);
     }
 }
 

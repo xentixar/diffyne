@@ -144,6 +144,7 @@ HTML;
         $html = $rendered['html'];
         $state = htmlspecialchars(json_encode($rendered['state']), ENT_QUOTES, 'UTF-8');
         $fingerprint = $rendered['fingerprint'];
+        $eventListeners = htmlspecialchars(json_encode($rendered['eventListeners'] ?? []), ENT_QUOTES, 'UTF-8');
 
         // For nested components, use the full path as component name
         $namespace = config('diffyne.component_namespace', 'App\\Diffyne');
@@ -157,6 +158,7 @@ HTML;
     diff:name="{$componentName}"
     diff:state="{$state}"
     diff:fingerprint="{$fingerprint}"
+    diff:listeners="{$eventListeners}"
     data-diffyne-component
     data-diffyne-loaded
 >

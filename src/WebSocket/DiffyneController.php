@@ -6,6 +6,7 @@ use Diffyne\DiffyneManager;
 use Diffyne\Exceptions\RedirectException;
 use Diffyne\State\ComponentHydrator;
 use Diffyne\VirtualDOM\Renderer;
+use Diffyne\VirtualDOM\PatchSerializer;
 use Sockeon\Sockeon\Controllers\SocketController;
 use Sockeon\Sockeon\WebSocket\Attributes\OnConnect;
 use Sockeon\Sockeon\WebSocket\Attributes\OnDisconnect;
@@ -16,12 +17,14 @@ class DiffyneController extends SocketController
     protected Renderer $renderer;
     protected ComponentHydrator $hydrator;
     protected DiffyneManager $manager;
+    protected PatchSerializer $serializer;
 
     public function __construct()
     {
         $this->renderer = app(Renderer::class);
         $this->hydrator = app(ComponentHydrator::class);
         $this->manager = app('diffyne');
+        $this->serializer = app(PatchSerializer::class);
     }
 
     /**
@@ -89,12 +92,14 @@ class DiffyneController extends SocketController
             // Render the updated component
             $response = $this->renderer->renderUpdate($component);
 
+            // Serialize response with events
+            $serializedResponse = $this->serializer->toResponse($response, config('diffyne.performance.minify_patches', true));
+
             // Send response
-            $this->emit($clientId, 'diffyne.response', [
-                's' => true,
-                'c' => $response,
-                'requestId' => $data['requestId'] ?? null
-            ]);
+            $this->emit($clientId, 'diffyne.response', array_merge(
+                $serializedResponse,
+                ['requestId' => $data['requestId'] ?? null]
+            ));
 
         } catch (RedirectException $e) {
             $redirectData = $e->getRedirectData();
@@ -166,18 +171,20 @@ class DiffyneController extends SocketController
 
             // Call updated hook if it exists
             if (method_exists($component, 'updated')) {
-                $component->updated($property, $value);
+                $component->updated($property);
             }
 
             // Render the updated component
             $response = $this->renderer->renderUpdate($component);
 
+            // Serialize response with events
+            $serializedResponse = $this->serializer->toResponse($response, config('diffyne.performance.minify_patches', true));
+
             // Send response
-            $this->emit($clientId, 'diffyne.response', [
-                's' => true,
-                'c' => $response,
-                'requestId' => $data['requestId'] ?? null
-            ]);
+            $this->emit($clientId, 'diffyne.response', array_merge(
+                $serializedResponse,
+                ['requestId' => $data['requestId'] ?? null]
+            ));
 
         } catch (RedirectException $e) {
             $redirectData = $e->getRedirectData();

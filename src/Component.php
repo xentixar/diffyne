@@ -2,6 +2,7 @@
 
 namespace Diffyne;
 
+use Diffyne\Attributes\On;
 use Diffyne\Attributes\QueryString;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\MessageBag;
@@ -51,6 +52,21 @@ abstract class Component
     protected MessageBag $errorBag;
 
     /**
+     * Events to dispatch to other components.
+     */
+    protected array $dispatchedEvents = [];
+
+    /**
+     * Browser events to dispatch.
+     */
+    protected array $browserEvents = [];
+
+    /**
+     * Event listeners registered via #[On] attribute.
+     */
+    protected array $eventListeners = [];
+
+    /**
      * Create a new component instance.
      */
     public function __construct()
@@ -58,6 +74,7 @@ abstract class Component
         $this->id = $this->generateId();
         $this->errorBag = new MessageBag;
         $this->initializeProperties();
+        $this->registerEventListeners();
     }
 
     /**
@@ -91,6 +108,62 @@ abstract class Component
                         'keep' => $urlAttr->keep,
                     ];
                 }
+            }
+        }
+    }
+
+    /**
+     * Register event listeners from #[On] attributes.
+     */
+    protected function registerEventListeners(): void
+    {
+        $reflection = new ReflectionClass($this);
+        $methods = $reflection->getMethods(\ReflectionMethod::IS_PUBLIC);
+
+        foreach ($methods as $method) {
+            // Skip magic methods and static methods
+            if (str_starts_with($method->getName(), '__') || $method->isStatic()) {
+                continue;
+            }
+
+            // Get all #[On] attributes on this method
+            $attributes = $method->getAttributes(On::class);
+            
+            foreach ($attributes as $attribute) {
+                /** @var On $onAttribute */
+                $onAttribute = $attribute->newInstance();
+                $eventName = $onAttribute->event;
+                
+                // Register this method as a listener for the event
+                if (!isset($this->eventListeners[$eventName])) {
+                    $this->eventListeners[$eventName] = [];
+                }
+                
+                $this->eventListeners[$eventName][] = $method->getName();
+            }
+        }
+    }
+
+    /**
+     * Get registered event listeners.
+     */
+    public function getEventListeners(): array
+    {
+        return $this->eventListeners;
+    }
+
+    /**
+     * Handle an incoming event by calling registered listeners.
+     */
+    public function handleEvent(string $eventName, array $params = []): void
+    {
+        if (!isset($this->eventListeners[$eventName])) {
+            return;
+        }
+
+        foreach ($this->eventListeners[$eventName] as $methodName) {
+            if (method_exists($this, $methodName)) {
+                $this->$methodName(...$params);
             }
         }
     }
@@ -512,6 +585,89 @@ abstract class Component
     {
         $url = url()->previous();
         $this->redirect($url, $spa);
+    }
+
+    /**
+     * Dispatch an event to all components listening for it.
+     */
+    protected function dispatch(string $event, ...$params): self
+    {
+        $this->dispatchedEvents[] = [
+            'name' => $event,
+            'params' => $params,
+            'to' => null,
+            'self' => false,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Dispatch an event to a specific component(s).
+     */
+    protected function dispatchTo(string|array $components, string $event, ...$params): self
+    {
+        $this->dispatchedEvents[] = [
+            'name' => $event,
+            'params' => $params,
+            'to' => is_array($components) ? $components : [$components],
+            'self' => false,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Dispatch an event only to this component.
+     */
+    protected function dispatchSelf(string $event, ...$params): self
+    {
+        $this->dispatchedEvents[] = [
+            'name' => $event,
+            'params' => $params,
+            'to' => [$this->id],
+            'self' => true,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Dispatch a browser event (JavaScript custom event).
+     */
+    protected function dispatchBrowserEvent(string $event, mixed $data = null): self
+    {
+        $this->browserEvents[] = [
+            'name' => $event,
+            'data' => $data,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Get dispatched events.
+     */
+    public function getDispatchedEvents(): array
+    {
+        return $this->dispatchedEvents;
+    }
+
+    /**
+     * Get browser events.
+     */
+    public function getBrowserEvents(): array
+    {
+        return $this->browserEvents;
+    }
+
+    /**
+     * Clear dispatched events (used after sending to client).
+     */
+    public function clearDispatchedEvents(): void
+    {
+        $this->dispatchedEvents = [];
+        $this->browserEvents = [];
     }
 
     /**

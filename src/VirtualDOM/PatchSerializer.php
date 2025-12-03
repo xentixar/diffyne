@@ -66,6 +66,16 @@ class PatchSerializer
             $result['c']['q'] = $response['queryString'];
         }
 
+        // Include dispatched events
+        if (isset($response['events']) && !empty($response['events'])) {
+            $result['events'] = $response['events'];
+        }
+
+        // Include browser events
+        if (isset($response['browserEvents']) && !empty($response['browserEvents'])) {
+            $result['browserEvents'] = $response['browserEvents'];
+        }
+
         return $result;
     }
 

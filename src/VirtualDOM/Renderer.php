@@ -43,6 +43,7 @@ class Renderer
             'html' => $html,
             'state' => $component->getState(),
             'fingerprint' => $component->calculateFingerprint(),
+            'eventListeners' => $component->getEventListeners(),
         ];
     }
 
@@ -78,6 +79,23 @@ class Renderer
         $queryString = $component->getQueryString();
         if (!empty($queryString)) {
             $result['queryString'] = $queryString;
+        }
+
+        // Include dispatched events
+        $dispatchedEvents = $component->getDispatchedEvents();
+        if (!empty($dispatchedEvents)) {
+            $result['events'] = $dispatchedEvents;
+        }
+
+        // Include browser events
+        $browserEvents = $component->getBrowserEvents();
+        if (!empty($browserEvents)) {
+            $result['browserEvents'] = $browserEvents;
+        }
+
+        // Clear events after adding to response (only if there were any)
+        if (!empty($dispatchedEvents) || !empty($browserEvents)) {
+            $component->clearDispatchedEvents();
         }
 
         return $result;

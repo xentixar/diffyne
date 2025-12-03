@@ -7,8 +7,9 @@
 import { getCsrfToken, generateId, getQueryParams, Logger } from '../utils/helpers.js';
 
 export class TransportService {
-    constructor(config) {
+    constructor(config, logger) {
         this.config = config;
+        this.logger = logger;
         this.ws = null;
     }
 
@@ -123,13 +124,13 @@ export class TransportService {
         this.ws.onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data);
-                const logger = new Logger(this.config.debug);
+
                 if (message.event === 'diffyne.connected') {
-                    logger.log('[Diffyne WS] Connected:', message.data);
+                    this.logger.log('[Diffyne WS] Connected:', message.data);
                 }
                 
                 if (message.event === 'diffyne.pong') {
-                    logger.log('[Diffyne WS] Pong received');
+                    this.logger.log('[Diffyne WS] Pong received');
                 }
             } catch (e) {
                 // Messages handled by request handlers

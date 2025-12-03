@@ -135,7 +135,7 @@ class MakeDiffyneCommand extends Command
      */
     protected function getClassStub(string $className, string $namespace): string
     {
-        $stub = File::get(__DIR__.'/../../stubs/component.stub');
+        $stub = File::get(__DIR__.'/../../../stubs/component.stub');
 
         return str_replace(
             ['DummyNamespace', 'DummyClass'],
@@ -149,7 +149,7 @@ class MakeDiffyneCommand extends Command
      */
     protected function getViewStub(string $className): string
     {
-        $stub = File::get(__DIR__.'/../../stubs/view.stub');
+        $stub = File::get(__DIR__.'/../../../stubs/view.stub');
 
         return str_replace('DummyClass', $className, $stub);
     }
