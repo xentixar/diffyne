@@ -85,21 +85,104 @@ Diffyne handles type-safe restoration, converting null values appropriately:
 - `bool` → `false`
 - `array` → `[]`
 
+## Locked Properties
+
+Properties marked with `#[Locked]` cannot be updated from the client. Use for server-controlled data.
+
+### Usage
+
+```php
+use Diffyne\Attributes\Locked;
+
+class PostList extends Component
+{
+    #[Locked]
+    public array $posts = []; // Cannot be changed from client
+    
+    #[Locked]
+    public int $total = 0; // Server-calculated
+    
+    public int $page = 1; // Can be changed from client
+}
+```
+
+### When to Use
+
+- **Server-controlled data**: Database results, computed totals
+- **Security**: Prevent tampering with sensitive data
+- **Derived values**: Values calculated from other properties
+
+### Example
+
+```php
+class ShoppingCart extends Component
+{
+    #[Locked]
+    public array $items = []; // Server loads from database
+    
+    #[Locked]
+    public float $subtotal = 0.0; // Calculated server-side
+    
+    public function addItem(int $productId): void
+    {
+        // Only server can modify items
+        $product = Product::find($productId);
+        $this->items[] = $product->toArray();
+        $this->recalculateTotals();
+    }
+    
+    private function recalculateTotals(): void
+    {
+        $this->subtotal = array_sum(array_column($this->items, 'price'));
+    }
+}
+```
+
+**Security Note**: Attempting to update a locked property from the client will result in a `400 Bad Request` error.
+
 ## Computed Properties
 
-Use methods for computed values:
+Properties marked with `#[Computed]` are excluded from state serialization. They're calculated, not stored.
+
+### Using #[Computed] Attribute
+
+```php
+use Diffyne\Attributes\Computed;
+
+class TodoList extends Component
+{
+    public array $todos = [];
+    
+    #[Computed]
+    public int $completedCount = 0; // Not in state
+    
+    public function getCompletedCount(): int
+    {
+        return count(array_filter($this->todos, fn($t) => $t['completed']));
+    }
+    
+    public function getRemainingCount(): int
+    {
+        return count($this->todos) - $this->getCompletedCount();
+    }
+}
+```
+
+### Using Methods (Alternative)
+
+You can also use methods for computed values:
 
 ```php
 class TodoList extends Component
 {
     public array $todos = [];
     
-    public function getCompletedCount()
+    public function getCompletedCount(): int
     {
         return count(array_filter($this->todos, fn($t) => $t['completed']));
     }
     
-    public function getRemainingCount()
+    public function getRemainingCount(): int
     {
         return count($this->todos) - $this->getCompletedCount();
     }
@@ -112,6 +195,14 @@ Use in views:
 <p>{{ $this->getCompletedCount() }} completed</p>
 <p>{{ $this->getRemainingCount() }} remaining</p>
 ```
+
+### When to Use #[Computed]
+
+- **Derived values**: Values calculated from other properties
+- **Performance**: Avoid storing redundant data
+- **Consistency**: Always calculate from source of truth
+
+**Note**: Computed properties are automatically hidden from state and cannot be updated from the client.
 
 ## Resetting State
 
@@ -254,18 +345,40 @@ public function hydrate()
 ### 4. Use Computed Properties
 
 ```php
-// Good - computed
-public function getTotalPrice()
+// Good - computed method
+public function getTotalPrice(): float
 {
     return array_sum(array_column($this->items, 'price'));
 }
 
-// Avoid - storing computed value
-public float $totalPrice;
+// Good - computed attribute
+#[Computed]
+public float $totalPrice = 0.0;
+
+public function getTotalPrice(): float
+{
+    return array_sum(array_column($this->items, 'price'));
+}
+
+// Avoid - storing computed value in state
+public float $totalPrice; // Redundant, can get out of sync
+```
+
+### 5. Use #[Locked] for Server Data
+
+```php
+// Good - locked property
+#[Locked]
+public array $posts = [];
+
+// Avoid - allows client tampering
+public array $posts = [];
 ```
 
 ## Next Steps
 
+- [Attributes](features/attributes.md) - Learn about Locked, Computed, and other attributes
+- [Security](security.md) - Security features and best practices
 - [Lifecycle Hooks](lifecycle-hooks.md) - Component lifecycle
 - [Virtual DOM](virtual-dom.md) - How state changes update DOM
 - [Performance](performance.md) - State optimization

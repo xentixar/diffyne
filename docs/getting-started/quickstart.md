@@ -21,17 +21,20 @@ Open `app/Diffyne/Counter.php` and define your component:
 
 namespace App\Diffyne;
 
+use Diffyne\Attributes\Invokable;
 use Diffyne\Component;
 
 class Counter extends Component
 {
     public int $count = 0;
 
+    #[Invokable]
     public function increment()
     {
         $this->count++;
     }
 
+    #[Invokable]
     public function decrement()
     {
         $this->count--;
@@ -41,7 +44,7 @@ class Counter extends Component
 
 ### Key Points:
 - Public properties are **reactive** - changes trigger UI updates
-- Public methods can be called from the browser
+- Methods must be marked with `#[Invokable]` to be called from the browser (security feature)
 - No need for manual state management
 
 ## 3. Component View

@@ -23,10 +23,13 @@ php artisan vendor:publish --tag=diffyne-config
 ```
 
 This creates `config/diffyne.php` where you can configure:
+- Transport mode (AJAX or WebSocket)
 - Component namespace
 - View path
 - Debug mode
-- Cache settings
+- Security settings
+- Performance options
+- WebSocket configuration
 
 ### 3. Publish Assets
 
@@ -98,17 +101,46 @@ The `config/diffyne.php` file contains these options:
 
 ```php
 return [
-    // Namespace for your components
-    'namespace' => 'App\\Diffyne',
+    // Transport mode: 'ajax' or 'websocket'
+    'transport' => env('DIFFYNE_TRANSPORT', 'ajax'),
+    
+    // Component namespace
+    'component_namespace' => 'App\\Diffyne',
     
     // View path for component templates
-    'view_path' => 'diffyne',
+    'view_path' => resource_path('views/diffyne'),
     
     // Enable debug mode for detailed error messages
     'debug' => env('DIFFYNE_DEBUG', false),
     
-    // Cache component metadata
-    'cache' => env('DIFFYNE_CACHE', true),
+    // Security settings
+    'security' => [
+        'signing_key' => env('DIFFYNE_SIGNING_KEY'), // Defaults to APP_KEY
+        'verify_state' => env('DIFFYNE_VERIFY_STATE', true),
+        'rate_limit' => env('DIFFYNE_RATE_LIMIT', 60),
+    ],
+    
+    // Performance options
+    'performance' => [
+        'cache_rendered_views' => env('DIFFYNE_CACHE_VIEWS', true),
+        'minify_patches' => env('DIFFYNE_MINIFY_PATCHES', true),
+        'debounce_default' => 150,
+        'max_request_size' => 512 * 1024,
+        'enable_compression' => env('DIFFYNE_COMPRESSION', true),
+    ],
+    
+    // WebSocket configuration (when using 'websocket' transport)
+    'websocket' => [
+        'host' => env('DIFFYNE_WS_HOST', '127.0.0.1'),
+        'port' => env('DIFFYNE_WS_PORT', 6001),
+        'path' => env('DIFFYNE_WS_PATH', '/diffyne'),
+        'key' => env('DIFFYNE_WS_KEY'),
+        'cors' => [
+            'allowed_origins' => explode(',', env('DIFFYNE_WS_CORS_ORIGINS', '*')),
+            'allowed_methods' => ['GET', 'POST', 'OPTIONS'],
+            'allowed_headers' => ['Content-Type', 'Authorization', 'X-CSRF-TOKEN'],
+        ],
+    ],
 ];
 ```
 
@@ -117,9 +149,93 @@ return [
 Add these to your `.env` file:
 
 ```env
+# Transport mode
+DIFFYNE_TRANSPORT=ajax
+
+# Debug mode
 DIFFYNE_DEBUG=false
-DIFFYNE_CACHE=true
+
+# Security
+DIFFYNE_VERIFY_STATE=true
+DIFFYNE_RATE_LIMIT=60
+
+# Performance
+DIFFYNE_CACHE_VIEWS=true
+DIFFYNE_MINIFY_PATCHES=true
+DIFFYNE_COMPRESSION=true
+
+# WebSocket (if using websocket transport)
+DIFFYNE_WS_HOST=127.0.0.1
+DIFFYNE_WS_PORT=6001
+DIFFYNE_WS_PATH=/diffyne
+DIFFYNE_WS_KEY=your-secret-key
+DIFFYNE_WS_CORS_ORIGINS=*
 ```
+
+## WebSocket Setup (Optional)
+
+Diffyne supports WebSocket transport for real-time, bidirectional communication. This is optional - the default AJAX transport works great for most use cases.
+
+### When to Use WebSocket
+
+- Real-time applications (chat, notifications, live updates)
+- High-frequency updates
+- Lower latency requirements
+- Persistent connections
+
+### Setup Steps
+
+1. **Install Sockeon** (WebSocket server):
+
+```bash
+composer require sockeon/sockeon
+```
+
+2. **Configure WebSocket in `.env`**:
+
+```env
+DIFFYNE_TRANSPORT=websocket
+DIFFYNE_WS_HOST=127.0.0.1
+DIFFYNE_WS_PORT=6001
+DIFFYNE_WS_KEY=your-secret-key-here
+```
+
+3. **Start the WebSocket server**:
+
+```bash
+php artisan diffyne:websocket
+```
+
+Or run it in the background:
+
+```bash
+php artisan diffyne:websocket > /dev/null 2>&1 &
+```
+
+4. **For production**, use a process manager like Supervisor:
+
+```ini
+[program:diffyne-websocket]
+command=php /path/to/artisan diffyne:websocket
+directory=/path/to/project
+autostart=true
+autorestart=true
+user=www-data
+redirect_stderr=true
+stdout_logfile=/path/to/logs/diffyne-websocket.log
+```
+
+### WebSocket vs AJAX
+
+| Feature | AJAX | WebSocket |
+|---------|------|-----------|
+| Latency | ~50-200ms | ~10-50ms |
+| Connection | Per-request | Persistent |
+| Server Load | Lower | Higher |
+| Complexity | Simple | Moderate |
+| Use Case | Most apps | Real-time apps |
+
+**Recommendation**: Start with AJAX. Switch to WebSocket only if you need real-time features or lower latency.
 
 ## Next Steps
 

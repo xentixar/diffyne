@@ -136,13 +136,18 @@ When the button is clicked, Diffyne sends only the minimal patch (~50 bytes) ins
 - ✅ Form validation
 - ✅ Lifecycle hooks
 - ✅ Loading states & polling
+- ✅ Component events (dispatch, dispatchTo, dispatchSelf)
+- ✅ Query string binding
+- ✅ WebSocket support (via Sockeon)
+- ✅ Security features (state signing, locked properties)
+- ✅ Attributes (Locked, QueryString, On, Invokable, Computed, Lazy)
+- ✅ Redirects (SPA navigation)
+- ✅ Browser events
 
 **Coming Soon**
-- Flash messages & redirects
 - File uploads
-- Component events
-- Query string binding
-- WebSocket support
+- Flash messages
+- Nested components
 
 ## 🤝 Contributing
 

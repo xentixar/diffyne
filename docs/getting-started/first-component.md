@@ -19,6 +19,7 @@ Edit `app/Diffyne/TodoList.php`:
 
 namespace App\Diffyne;
 
+use Diffyne\Attributes\Invokable;
 use Diffyne\Component;
 
 class TodoList extends Component
@@ -37,6 +38,7 @@ class TodoList extends Component
     }
     
     // Add new todo
+    #[Invokable]
     public function addTodo()
     {
         if (trim($this->newTodo) !== '') {
@@ -46,6 +48,7 @@ class TodoList extends Component
     }
     
     // Remove todo by index
+    #[Invokable]
     public function removeTodo($index)
     {
         unset($this->todos[$index]);
@@ -53,6 +56,7 @@ class TodoList extends Component
     }
     
     // Mark all complete (example)
+    #[Invokable]
     public function clearAll()
     {
         $this->todos = [];

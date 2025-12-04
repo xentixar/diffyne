@@ -95,7 +95,7 @@ class LoginForm extends Component
         
         if (auth()->attempt($validated)) {
             session()->flash('success', 'Logged in successfully!');
-            return redirect('/dashboard');
+            $this->redirect('/dashboard');
         }
         
         $this->addError('email', 'Invalid credentials');
@@ -179,7 +179,7 @@ class RegisterForm extends Component
         
         auth()->login($user);
         
-        return redirect('/dashboard');
+        $this->redirect('/dashboard');
     }
 }
 ```
