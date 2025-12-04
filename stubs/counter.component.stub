@@ -4,6 +4,7 @@ namespace App\Diffyne;
 
 use Diffyne\Component;
 use Illuminate\View\View;
+use Diffyne\Attributes\Invokable;
 
 class Counter extends Component
 {
@@ -15,6 +16,7 @@ class Counter extends Component
     /**
      * Increment the counter.
      */
+    #[Invokable]
     public function increment(): void
     {
         $this->count++;
@@ -23,6 +25,7 @@ class Counter extends Component
     /**
      * Decrement the counter.
      */
+    #[Invokable]
     public function decrement(): void
     {
         $this->count--;
@@ -31,6 +34,7 @@ class Counter extends Component
     /**
      * Reset the counter.
      */
+    #[Invokable]
     public function reset(): void
     {
         $this->count = 0;
