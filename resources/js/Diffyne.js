@@ -21,18 +21,19 @@ export class Diffyne {
             wsUrl: config.wsUrl || 'ws://localhost:8080/diffyne',
             endpoint: config.endpoint || '/_diffyne',
             debug: config.debug || false,
+            maxMessageSize: config.maxMessageSize || 1048576,
             ...config
         };
 
         // Initialize services (Dependency Injection)
+        this.logger = new Logger(this.config.debug);
         this.registry = new ComponentRegistry();
-        this.transport = new TransportService(this.config, this.logger);
+        this.transport = new TransportService(this.config, this.logger, this.maxMessageSize);
         this.patchApplier = new PatchApplier();
         this.vNodeConverter = new VNodeConverter();
         this.loadingService = new LoadingService();
         this.errorService = new ErrorService();
         this.modelSync = new ModelSyncService();
-        this.logger = new Logger(this.config.debug);
         this.eventManager = new EventManager(this.registry, this.logger);
         
         // Initialize event binder with handlers

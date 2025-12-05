@@ -31,6 +31,7 @@ class DiffyneWebSocketCommand extends Command
         $port = config('diffyne.websocket.port', 6001);
         $debug = config('diffyne.debug', false);
         $key = config('diffyne.websocket.key', null);
+        $maxMessageSize = config('diffyne.websocket.max_message_size', 1048576);
 
         $logger = new Logger(LogLevel::INFO, false, true, storage_path('logs/diffyne-websocket'), false);
         $config = new ServerConfig([
@@ -43,8 +44,10 @@ class DiffyneWebSocketCommand extends Command
                 'allowed_methods' => ['GET', 'POST', 'OPTIONS'],
                 'allowed_headers' => ['Content-Type', 'Authorization', 'X-CSRF-TOKEN'],
             ],
-            'logger' => $logger,
+            'logger' => $logger
         ]);
+
+        $config->setMaxMessageSize($maxMessageSize);
 
         $server = new Server($config);
 

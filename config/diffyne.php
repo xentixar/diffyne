@@ -30,6 +30,7 @@ return [
         'port' => env('DIFFYNE_WS_PORT', 6001),
         'path' => env('DIFFYNE_WS_PATH', '/diffyne'),
         'key' => env('DIFFYNE_WS_KEY', 'd2c61c0f8393e8b5273e84879276cbe7'),
+        'max_message_size' => env('DIFFYNE_WS_MAX_MESSAGE_SIZE', 1048576),
         'cors' => [
             'allowed_origins' => explode(',', env('DIFFYNE_WS_CORS_ORIGINS', '*')),
             'allowed_methods' => ['GET', 'POST', 'OPTIONS'],

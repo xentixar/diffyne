@@ -7,9 +7,10 @@
 import { getCsrfToken, generateId, getQueryParams, Logger } from '../utils/helpers.js';
 
 export class TransportService {
-    constructor(config, logger) {
+    constructor(config, logger, maxMessageSize) {
         this.config = config;
         this.logger = logger;
+        this.maxMessageSize = maxMessageSize;
         this.ws = null;
     }
 
@@ -18,6 +19,16 @@ export class TransportService {
      */
     async send(payload) {
         if (this.config.transport === 'websocket') {
+            const messageString = JSON.stringify(payload);
+            const messageSize = new Blob([messageString]).size;
+            
+            if (messageSize > this.maxMessageSize) {
+                if (this.logger) {
+                    this.logger.log(`[Diffyne] Message too large for WebSocket (${Math.round(messageSize / 1024)}KB), falling back to AJAX`);
+                }
+                return this.sendAjax(payload);
+            }
+            
             return this.sendWebSocket(payload);
         }
         return this.sendAjax(payload);
@@ -51,6 +62,10 @@ export class TransportService {
 
     /**
      * Send WebSocket message
+     * 
+     * Note: The browser's WebSocket API automatically handles frame fragmentation
+     * when sending large messages. Sockeon on the server side automatically
+     * reassembles fragmented frames. No special handling needed on the frontend.
      */
     sendWebSocket(payload) {
         return new Promise((resolve, reject) => {
@@ -76,8 +91,18 @@ export class TransportService {
                 }
             };
 
+            const messageString = JSON.stringify(message);
+            const messageSize = new Blob([messageString]).size;
+
+            // Log warning for large messages
+            if (this.logger && messageSize > this.maxMessageSize) {
+                this.logger.log(`[Diffyne WS] Sending large message (${Math.round(messageSize / 1024)}KB). Browser will fragment automatically.`);
+            }
+
             const handler = (event) => {
                 try {
+                    // Browser automatically reassembles fragmented frames before calling onmessage
+                    // So event.data always contains the complete message
                     const response = JSON.parse(event.data);
                     
                     if (response.event === 'diffyne.response' && 
@@ -101,7 +126,10 @@ export class TransportService {
             };
 
             this.ws.addEventListener('message', handler);
-            this.ws.send(JSON.stringify(message));
+            
+            // Browser WebSocket API automatically fragments large messages into frames
+            // Sockeon server automatically reassembles fragmented frames
+            this.ws.send(messageString);
 
             setTimeout(() => {
                 this.ws.removeEventListener('message', handler);
@@ -123,6 +151,8 @@ export class TransportService {
 
         this.ws.onmessage = (event) => {
             try {
+                // Browser automatically reassembles fragmented frames before calling onmessage
+                // So event.data always contains the complete message, even for large fragmented messages
                 const message = JSON.parse(event.data);
 
                 if (message.event === 'diffyne.connected') {
