@@ -85,7 +85,7 @@ abstract class Component
     public function __construct()
     {
         $this->id = $this->generateId();
-        $this->errorBag = new MessageBag;
+        $this->errorBag = new MessageBag();
         $this->initializeProperties();
         $this->registerEventListeners();
     }
@@ -110,21 +110,22 @@ abstract class Component
         foreach ($properties as $property) {
             if (! $property->isStatic() && $property->getName() !== 'id') {
                 $propertyName = $property->getName();
-                
+
                 // Check for Computed attribute
                 $computedAttrs = $property->getAttributes(Computed::class);
                 if (! empty($computedAttrs)) {
                     $this->computed[] = $propertyName;
                     $this->hidden[] = $propertyName; // Computed properties are also hidden from state
+
                     continue; // Don't track computed properties
                 }
-                
+
                 // Check for Locked attribute
                 $lockedAttrs = $property->getAttributes(Locked::class);
                 if (! empty($lockedAttrs)) {
                     $this->locked[] = $propertyName;
                 }
-                
+
                 $this->tracked[] = $propertyName;
 
                 // Check for QueryString attribute
@@ -210,10 +211,10 @@ abstract class Component
         $classWithoutPackageNamespace = str_replace(config('diffyne.component_namespace', 'App\\Diffyne').'\\', '', static::class);
         $class = str_replace('\\', '/', $classWithoutPackageNamespace);
         $parts = explode('/', $class);
-                
+
         // Convert each part to kebab-case
-        $parts = array_map(fn($part) => Str::kebab($part), $parts);
-        
+        $parts = array_map(fn ($part) => Str::kebab($part), $parts);
+
         // Join with dots
         return 'diffyne.' . implode('.', $parts);
     }
@@ -298,7 +299,7 @@ abstract class Component
         // Check if method is explicitly marked as invokable
         $reflection = new \ReflectionMethod($this, $method);
         $invokableAttrs = $reflection->getAttributes(Invokable::class);
-        
+
         if (empty($invokableAttrs)) {
             throw new \BadMethodCallException("Method [{$method}] is not invokable. Add #[Invokable] attribute to allow client invocation.");
         }
@@ -363,6 +364,7 @@ abstract class Component
             return $validated;
         } catch (ValidationException $e) {
             $this->errorBag = $e->validator->errors();
+
             throw $e;
         }
     }
@@ -400,7 +402,7 @@ abstract class Component
     protected function resetValidation($field = null): void
     {
         if ($field === null) {
-            $this->errorBag = new MessageBag;
+            $this->errorBag = new MessageBag();
 
             return;
         }

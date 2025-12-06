@@ -42,4 +42,3 @@ function getApp()
 | global functions to help you to reduce the amount of code you need to write.
 |
 */
-

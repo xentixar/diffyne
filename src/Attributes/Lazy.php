@@ -14,5 +14,6 @@ class Lazy
      */
     public function __construct(
         public ?string $placeholder = null,
-    ) {}
+    ) {
+    }
 }

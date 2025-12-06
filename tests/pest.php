@@ -36,4 +36,3 @@ uses(TestCase::class)->in('Feature', 'Unit');
 | global functions to help you to reduce the amount of code you need to write.
 |
 */
-

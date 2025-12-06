@@ -44,14 +44,14 @@ class DiffyneWebSocketCommand extends Command
                 'allowed_methods' => ['GET', 'POST', 'OPTIONS'],
                 'allowed_headers' => ['Content-Type', 'Authorization', 'X-CSRF-TOKEN'],
             ],
-            'logger' => $logger
+            'logger' => $logger,
         ]);
 
         $config->setMaxMessageSize($maxMessageSize);
 
         $server = new Server($config);
 
-        $server->registerController(new DiffyneController);
+        $server->registerController(new DiffyneController());
 
         try {
             $server->run();

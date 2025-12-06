@@ -6,8 +6,7 @@ use Diffyne\Component;
 use Illuminate\View\View;
 
 test('component can be instantiated', function () {
-    $component = new class extends Component
-    {
+    $component = new class () extends Component {
         public string $name = 'Test';
 
         public function render(): View
@@ -22,8 +21,7 @@ test('component can be instantiated', function () {
 });
 
 test('component properties can be set and retrieved', function () {
-    $component = new class extends Component
-    {
+    $component = new class () extends Component {
         public string $title = 'Default Title';
         public int $count = 0;
 
@@ -41,8 +39,7 @@ test('component properties can be set and retrieved', function () {
 });
 
 test('component can have invokable methods', function () {
-    $component = new class extends Component
-    {
+    $component = new class () extends Component {
         public int $counter = 0;
 
         #[Invokable]
@@ -65,8 +62,7 @@ test('component can have invokable methods', function () {
 });
 
 test('component can have locked properties', function () {
-    $component = new class extends Component
-    {
+    $component = new class () extends Component {
         #[Locked]
         public string $secret = 'protected';
 
@@ -83,16 +79,14 @@ test('component can have locked properties', function () {
 });
 
 test('component generates unique id', function () {
-    $component1 = new class extends Component
-    {
+    $component1 = new class () extends Component {
         public function render(): View
         {
             return view($this->view());
         }
     };
 
-    $component2 = new class extends Component
-    {
+    $component2 = new class () extends Component {
         public function render(): View
         {
             return view($this->view());
@@ -103,4 +97,3 @@ test('component generates unique id', function () {
         ->and($component1->id)->toBeString()
         ->and($component2->id)->toBeString();
 });
-

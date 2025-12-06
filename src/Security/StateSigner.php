@@ -17,7 +17,7 @@ class StateSigner
         $key = self::getSigningKey();
         $normalizedState = self::normalizeState($state);
         $payload = json_encode($normalizedState, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . $componentId;
-        
+
         return hash_hmac('sha256', $payload, $key);
     }
 
@@ -27,7 +27,7 @@ class StateSigner
     public static function verify(array $state, string $componentId, string $signature): bool
     {
         $expectedSignature = self::sign($state, $componentId);
-        
+
         return hash_equals($expectedSignature, $signature);
     }
 
@@ -39,7 +39,7 @@ class StateSigner
     {
         // Sort keys alphabetically for consistent ordering
         ksort($state);
-        
+
         // Recursively normalize values
         foreach ($state as $key => $value) {
             if (is_array($value)) {
@@ -49,7 +49,7 @@ class StateSigner
             // Note: We keep null as null for now, as the real fix is to match
             // the initial component state types
         }
-        
+
         return $state;
     }
 
@@ -59,7 +59,7 @@ class StateSigner
     protected static function getSigningKey(): string
     {
         $key = Config::get('diffyne.security.signing_key') ?: Config::get('app.key');
-        
+
         if (! $key) {
             throw new \RuntimeException('No signing key configured. Set DIFFYNE_SIGNING_KEY or APP_KEY.');
         }

@@ -19,7 +19,7 @@ class ComponentHydrator
             throw new \InvalidArgumentException("Class [{$componentClass}] must extend Diffyne\\Component.");
         }
 
-        $component = new $componentClass;
+        $component = new $componentClass();
         $component->id = $id;
         $component->restoreState($state);
         $component->hydrate();
@@ -56,7 +56,7 @@ class ComponentHydrator
             throw new \InvalidArgumentException("Class [{$componentClass}] must extend Diffyne\\Component.");
         }
 
-        $component = new $componentClass;
+        $component = new $componentClass();
 
         // Sync URL-bound properties from query string
         $this->syncFromQueryString($component);

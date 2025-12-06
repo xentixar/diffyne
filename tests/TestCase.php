@@ -21,13 +21,6 @@ abstract class TestCase extends OrchestraTestCase
 
     protected function getEnvironmentSetUp($app): void
     {
-        // Setup view paths
-        $app['config']->set('view.paths', [
-            __DIR__.'/../resources/views',
-            resource_path('views'),
-        ]);
-
-        // Setup any other environment configuration here
+        //
     }
 }
-

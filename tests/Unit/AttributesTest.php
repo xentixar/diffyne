@@ -4,8 +4,7 @@ use Diffyne\Attributes\Invokable;
 use Diffyne\Attributes\Locked;
 
 test('invokable attribute can be applied to methods', function () {
-    $reflection = new ReflectionClass(new class
-    {
+    $reflection = new ReflectionClass(new class () {
         #[Invokable]
         public function testMethod(): void
         {
@@ -20,8 +19,7 @@ test('invokable attribute can be applied to methods', function () {
 });
 
 test('locked attribute can be applied to properties', function () {
-    $reflection = new ReflectionClass(new class
-    {
+    $reflection = new ReflectionClass(new class () {
         #[Locked]
         public string $lockedProperty = 'value';
     });
@@ -32,4 +30,3 @@ test('locked attribute can be applied to properties', function () {
     expect($attributes)->not->toBeEmpty()
         ->and($attributes[0]->getName())->toBe(Locked::class);
 });
-

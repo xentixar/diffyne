@@ -4,8 +4,8 @@ A blazing-fast, server-driven UI framework for PHP powered by a lightweight **Vi
 Diffyne lets you build dynamic interfaces with the simplicity of Blade/PHP components — but with the rendering efficiency of modern SPA frameworks.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue)](https://php.net)
-[![Laravel Version](https://img.shields.io/badge/laravel-%5E10.0-red)](https://laravel.com)
+[![PHP Version](https://img.shields.io/badge/php-%5E8.3-blue)](https://php.net)
+[![Laravel Version](https://img.shields.io/badge/laravel-%5E12.0-red)](https://laravel.com)
 
 ## 🚀 Why Diffyne?
 

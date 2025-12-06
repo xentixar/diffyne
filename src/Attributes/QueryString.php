@@ -18,5 +18,6 @@ class QueryString
         public ?string $as = null,
         public bool $history = true,
         public bool $keep = false
-    ) {}
+    ) {
+    }
 }

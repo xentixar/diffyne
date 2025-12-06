@@ -26,11 +26,11 @@ class DiffyneServiceProvider extends ServiceProvider
 
         // Register singletons
         $this->app->singleton(Renderer::class, function ($app) {
-            return new Renderer;
+            return new Renderer();
         });
 
         $this->app->singleton(ComponentHydrator::class, function ($app) {
-            return new ComponentHydrator;
+            return new ComponentHydrator();
         });
 
         // Register Diffyne facade

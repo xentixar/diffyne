@@ -16,5 +16,6 @@ class On
 {
     public function __construct(
         public string $event
-    ) {}
+    ) {
+    }
 }

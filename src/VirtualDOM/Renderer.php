@@ -24,8 +24,8 @@ class Renderer
 
     public function __construct()
     {
-        $this->parser = new HTMLParser;
-        $this->diffEngine = new DiffEngine;
+        $this->parser = new HTMLParser();
+        $this->diffEngine = new DiffEngine();
     }
 
     /**
@@ -40,10 +40,10 @@ class Renderer
         $this->snapshots[$component->id] = $vdom;
 
         $state = $component->getState();
-        
+
         // Normalize state for signature generation (convert empty strings to null to match request format)
         $normalizedState = $this->normalizeStateForSigning($state);
-        
+
         return [
             'id' => $component->id,
             'html' => $html,
@@ -71,7 +71,7 @@ class Renderer
         $this->snapshots[$component->id] = $newVdom;
 
         $state = $component->getState();
-        
+
         // Normalize state for signature generation (convert empty strings to null to match request format)
         $normalizedState = $this->normalizeStateForSigning($state);
 
@@ -128,7 +128,7 @@ class Renderer
                 $state[$key] = $this->normalizeStateForSigning($value);
             }
         }
-        
+
         return $state;
     }
 
@@ -145,7 +145,7 @@ class Renderer
 
         if ($view instanceof IlluminateView) {
             // Pass component state and errors to the view
-            $errorBag = new ViewErrorBag;
+            $errorBag = new ViewErrorBag();
             $errorBag->put('default', $component->getErrorBag());
 
             $data = array_merge(

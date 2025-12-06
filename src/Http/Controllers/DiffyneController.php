@@ -118,6 +118,7 @@ class DiffyneController extends Controller
                     }
 
                     $component->callMethod($method, $params);
+
                     break;
 
                 case 'update':
@@ -132,6 +133,7 @@ class DiffyneController extends Controller
                     }
 
                     $component->updateProperty($property, $value);
+
                     break;
 
                 default:
