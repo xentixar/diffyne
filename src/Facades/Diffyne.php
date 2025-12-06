@@ -6,10 +6,10 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static void component(string $alias, string $class)
- * @method static string mount(string $component, array $params = [])
+ * @method static string mount(string $component, array<string, mixed> $params = [])
  * @method static \Diffyne\VirtualDOM\Renderer getRenderer()
  * @method static \Diffyne\State\ComponentHydrator getHydrator()
- * @method static array getComponents()
+ * @method static array<string, string> getComponents()
  *
  * @see \Diffyne\DiffyneManager
  */

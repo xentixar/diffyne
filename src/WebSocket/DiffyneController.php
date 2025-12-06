@@ -56,6 +56,8 @@ class DiffyneController extends SocketController
 
     /**
      * Handle component method calls
+     *
+     * @param array<string, mixed> $data
      */
     #[SocketOn('diffyne.call')]
     public function handleMethodCall(string $clientId, array $data): void
@@ -83,7 +85,7 @@ class DiffyneController extends SocketController
             $this->renderer->snapshotComponent($component);
 
             // Call the method
-            if (! method_exists($component, $method)) {
+            if (! is_string($method) || ! method_exists($component, $method)) {
                 $this->emit($clientId, 'diffyne.error', [
                     'error' => "Method {$method} does not exist",
                     'type' => 'method_error',
@@ -92,7 +94,8 @@ class DiffyneController extends SocketController
                 return;
             }
 
-            call_user_func_array([$component, $method], $params);
+            // Call method directly instead of call_user_func_array for better type safety
+            $component->$method(...$params);
 
             // Render the updated component
             $response = $this->renderer->renderUpdate($component);
@@ -138,6 +141,8 @@ class DiffyneController extends SocketController
 
     /**
      * Handle component property updates
+     *
+     * @param array<string, mixed> $data
      */
     #[SocketOn('diffyne.update')]
     public function handlePropertyUpdate(string $clientId, array $data): void
@@ -176,10 +181,8 @@ class DiffyneController extends SocketController
 
             $component->{$property} = $value;
 
-            // Call updated hook if it exists
-            if (method_exists($component, 'updated')) {
-                $component->updated($property);
-            }
+            // Call updated hook (Component always has updated method)
+            $component->updated($property);
 
             // Render the updated component
             $response = $this->renderer->renderUpdate($component);
@@ -225,6 +228,8 @@ class DiffyneController extends SocketController
 
     /**
      * Handle ping from clients
+     *
+     * @param array<string, mixed> $data
      */
     #[SocketOn('diffyne.ping')]
     public function handlePing(string $clientId, array $data): void

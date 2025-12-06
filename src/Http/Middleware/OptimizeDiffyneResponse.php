@@ -16,7 +16,8 @@ class OptimizeDiffyneResponse
         $response = $next($request);
 
         // Only optimize Diffyne JSON responses
-        if (! $this->isDiffyneRequest($request) || ! $response->headers->get('Content-Type') === 'application/json') {
+        $contentType = $response->headers->get('Content-Type');
+        if (! $this->isDiffyneRequest($request) || ! is_string($contentType) || $contentType !== 'application/json') {
             return $response;
         }
 
@@ -58,6 +59,9 @@ class OptimizeDiffyneResponse
     protected function supportsCompression(Request $request): bool
     {
         $acceptEncoding = $request->header('Accept-Encoding', '');
+        if (! is_string($acceptEncoding)) {
+            return false;
+        }
 
         return str_contains($acceptEncoding, 'gzip');
     }

@@ -31,31 +31,43 @@ abstract class Component
 
     /**
      * Component properties that should not be exposed to the client.
+     *
+     * @var array<string>
      */
     protected array $hidden = [];
 
     /**
      * Component properties that should be tracked for changes.
+     *
+     * @var array<string>
      */
     protected array $tracked = [];
 
     /**
      * Properties that are locked (cannot be updated from client).
+     *
+     * @var array<string>
      */
     protected array $locked = [];
 
     /**
      * Properties that are computed (derived, not stored).
+     *
+     * @var array<string>
      */
     protected array $computed = [];
 
     /**
      * Component properties that should be synced with URL query string.
+     *
+     * @var array<string, array<string, mixed>>
      */
     protected array $urlProperties = [];
 
     /**
      * Previous state snapshot for diff calculation.
+     *
+     * @var array<string, mixed>
      */
     private array $previousState = [];
 
@@ -66,16 +78,22 @@ abstract class Component
 
     /**
      * Events to dispatch to other components.
+     *
+     * @var array<int, array<string, mixed>>
      */
     protected array $dispatchedEvents = [];
 
     /**
      * Browser events to dispatch.
+     *
+     * @var array<int, array<string, mixed>>
      */
     protected array $browserEvents = [];
 
     /**
      * Event listeners registered via #[On] attribute.
+     *
+     * @var array<string, array<int, string>>
      */
     protected array $eventListeners = [];
 
@@ -176,6 +194,8 @@ abstract class Component
 
     /**
      * Get registered event listeners.
+     *
+     * @return array<string, array<int, string>>
      */
     public function getEventListeners(): array
     {
@@ -184,6 +204,8 @@ abstract class Component
 
     /**
      * Handle an incoming event by calling registered listeners.
+     *
+     * @param array<int, mixed> $params
      */
     public function handleEvent(string $eventName, array $params = []): void
     {
@@ -289,6 +311,8 @@ abstract class Component
 
     /**
      * Call a component method.
+     *
+     * @param array<int, mixed> $params
      */
     public function callMethod(string $method, array $params = []): mixed
     {
@@ -309,6 +333,8 @@ abstract class Component
 
     /**
      * Get methods that cannot be called from the client.
+     *
+     * @return array<int, string>
      */
     protected function getProtectedMethods(): array
     {
@@ -342,6 +368,10 @@ abstract class Component
     /**
      * Validate component properties.
      *
+     * @param array<string, string>|null $rules
+     * @param array<string, string> $messages
+     * @param array<string, string> $attributes
+     * @return array<string, mixed>
      * @throws ValidationException
      */
     protected function validate(?array $rules = null, array $messages = [], array $attributes = []): array
@@ -397,7 +427,7 @@ abstract class Component
     /**
      * Reset validation for specific fields or all fields.
      *
-     * @param  string|array|null  $field
+     * @param string|array<string>|null $field
      */
     protected function resetValidation($field = null): void
     {
@@ -417,7 +447,7 @@ abstract class Component
     /**
      * Alias for resetValidation().
      *
-     * @param  string|array|null  $field
+     * @param string|array<string>|null $field
      */
     protected function resetErrorBag($field = null): void
     {
@@ -434,6 +464,8 @@ abstract class Component
 
     /**
      * Get the validation rules.
+     *
+     * @return array<string, string>
      */
     protected function rules(): array
     {
@@ -442,6 +474,8 @@ abstract class Component
 
     /**
      * Get custom validation messages.
+     *
+     * @return array<string, string>
      */
     protected function messages(): array
     {
@@ -450,6 +484,8 @@ abstract class Component
 
     /**
      * Get custom validation attributes.
+     *
+     * @return array<string, string>
      */
     protected function validationAttributes(): array
     {
@@ -466,6 +502,8 @@ abstract class Component
 
     /**
      * Set the error bag (for hydration).
+     *
+     * @param array<string, array<int, string>> $errors
      */
     public function setErrorBag(array $errors): void
     {
@@ -474,6 +512,8 @@ abstract class Component
 
     /**
      * Get the component's current state.
+     *
+     * @return array<string, mixed>
      */
     public function getState(): array
     {
@@ -490,6 +530,8 @@ abstract class Component
 
     /**
      * Restore component state from an array.
+     *
+     * @param array<string, mixed> $state
      */
     public function restoreState(array $state): void
     {
@@ -530,6 +572,8 @@ abstract class Component
 
     /**
      * Get changes since last snapshot.
+     *
+     * @return array<string, mixed>
      */
     public function getChanges(): array
     {
@@ -553,7 +597,12 @@ abstract class Component
      */
     public function calculateFingerprint(): string
     {
-        return md5(json_encode($this->getState()));
+        $json = json_encode($this->getState());
+        if ($json === false) {
+            return '';
+        }
+
+        return md5($json);
     }
 
     /**
@@ -574,6 +623,8 @@ abstract class Component
 
     /**
      * Get URL-bound properties configuration.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getUrlProperties(): array
     {
@@ -582,6 +633,8 @@ abstract class Component
 
     /**
      * Get query string parameters from URL-bound properties.
+     *
+     * @return array<string, mixed>
      */
     public function getQueryString(): array
     {
@@ -619,6 +672,8 @@ abstract class Component
 
     /**
      * Redirect to a route using SPA navigation.
+     *
+     * @param array<string, mixed> $parameters
      */
     protected function redirectRoute(string $name, array $parameters = [], bool $spa = true): never
     {
@@ -637,6 +692,8 @@ abstract class Component
 
     /**
      * Dispatch an event to all components listening for it.
+     *
+     * @param array<int, mixed> $params
      */
     protected function dispatch(string $event, ...$params): self
     {
@@ -652,6 +709,9 @@ abstract class Component
 
     /**
      * Dispatch an event to a specific component(s).
+     *
+     * @param string|array<string> $components
+     * @param array<int, mixed> $params
      */
     protected function dispatchTo(string|array $components, string $event, ...$params): self
     {
@@ -667,6 +727,8 @@ abstract class Component
 
     /**
      * Dispatch an event only to this component.
+     *
+     * @param array<int, mixed> $params
      */
     protected function dispatchSelf(string $event, ...$params): self
     {
@@ -695,6 +757,8 @@ abstract class Component
 
     /**
      * Get dispatched events.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function getDispatchedEvents(): array
     {
@@ -703,6 +767,8 @@ abstract class Component
 
     /**
      * Get browser events.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function getBrowserEvents(): array
     {
@@ -720,6 +786,8 @@ abstract class Component
 
     /**
      * Convert the component to an array.
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {

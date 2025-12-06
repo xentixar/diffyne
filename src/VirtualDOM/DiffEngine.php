@@ -24,11 +24,16 @@ class DiffEngine
 
     /**
      * Generated patches.
+     *
+     * @var array<int, array<string, mixed>>
      */
     protected array $patches = [];
 
     /**
      * Compare two VNode trees and generate patches.
+     *
+     * @param array<int, int> $path
+     * @return array<int, array<string, mixed>>
      */
     public function diff(?VNode $oldNode, ?VNode $newNode, array $path = []): array
     {
@@ -41,6 +46,8 @@ class DiffEngine
 
     /**
      * Diff two nodes recursively.
+     *
+     * @param array<int, int> $path
      */
     protected function diffNodes(?VNode $oldNode, ?VNode $newNode, array $path): void
     {
@@ -107,6 +114,10 @@ class DiffEngine
 
     /**
      * Diff attributes between two nodes.
+     *
+     * @param array<string, mixed> $oldAttrs
+     * @param array<string, mixed> $newAttrs
+     * @return array<string, mixed>
      */
     protected function diffAttributes(array $oldAttrs, array $newAttrs): array
     {
@@ -139,6 +150,10 @@ class DiffEngine
 
     /**
      * Diff children arrays.
+     *
+     * @param array<int, VNode> $oldChildren
+     * @param array<int, VNode> $newChildren
+     * @param array<int, int> $parentPath
      */
     protected function diffChildren(array $oldChildren, array $newChildren, array $parentPath): void
     {
@@ -168,6 +183,12 @@ class DiffEngine
 
     /**
      * Diff children using keys for efficient reordering.
+     *
+     * @param array<int, VNode> $oldChildren
+     * @param array<int, VNode> $newChildren
+     * @param array<int, int> $parentPath
+     * @param array<string, int> $oldKeyed
+     * @param array<string, int> $newKeyed
      */
     protected function diffKeyedChildren(
         array $oldChildren,
@@ -222,6 +243,9 @@ class DiffEngine
 
     /**
      * Extract keyed nodes from children array.
+     *
+     * @param array<int, VNode> $children
+     * @return array<string, int>
      */
     protected function extractKeyedNodes(array $children): array
     {
@@ -238,6 +262,9 @@ class DiffEngine
 
     /**
      * Add a patch to the collection.
+     *
+     * @param array<int, int> $path
+     * @param array<string, mixed> $data
      */
     protected function addPatch(string $type, array $path, array $data = []): void
     {
@@ -250,6 +277,8 @@ class DiffEngine
 
     /**
      * Get all generated patches.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function getPatches(): array
     {
@@ -258,6 +287,9 @@ class DiffEngine
 
     /**
      * Optimize patches by removing redundant operations.
+     *
+     * @param array<int, array<string, mixed>> $patches
+     * @return array<int, array<string, mixed>>
      */
     public function optimizePatches(array $patches): array
     {
@@ -283,6 +315,9 @@ class DiffEngine
 
     /**
      * Check if a path is a descendant of another path.
+     *
+     * @param array<int, int> $childPath
+     * @param array<int, int> $parentPath
      */
     protected function isDescendantPath(array $childPath, array $parentPath): bool
     {

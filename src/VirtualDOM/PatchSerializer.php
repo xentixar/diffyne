@@ -9,6 +9,8 @@ class PatchSerializer
 {
     /**
      * Serialize patches to JSON.
+     *
+     * @param array<int, array<string, mixed>> $patches
      */
     public function serialize(array $patches, bool $minify = false): string
     {
@@ -18,11 +20,18 @@ class PatchSerializer
             $options |= JSON_PRETTY_PRINT;
         }
 
-        return json_encode($patches, $options);
+        $json = json_encode($patches, $options);
+        if ($json === false) {
+            throw new \RuntimeException('Failed to serialize patches to JSON: '.json_last_error_msg());
+        }
+
+        return $json;
     }
 
     /**
      * Deserialize patches from JSON.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function deserialize(string $json): array
     {
@@ -37,6 +46,9 @@ class PatchSerializer
 
     /**
      * Format patches for HTTP response.
+     *
+     * @param array<string, mixed> $response
+     * @return array<string, mixed>
      */
     public function toResponse(array $response, bool $minify = true): array
     {
@@ -82,6 +94,9 @@ class PatchSerializer
 
     /**
      * Minify patches by using shorter keys.
+     *
+     * @param array<int, array<string, mixed>> $patches
+     * @return array<int, array<string, mixed>>
      */
     protected function minifyPatches(array $patches): array
     {
@@ -117,6 +132,9 @@ class PatchSerializer
 
     /**
      * Minify patch data keys.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     protected function minifyData(string $type, array $data): array
     {
@@ -142,6 +160,8 @@ class PatchSerializer
 
     /**
      * Calculate patch payload size.
+     *
+     * @param array<int, array<string, mixed>> $patches
      */
     public function calculateSize(array $patches): int
     {
@@ -150,6 +170,9 @@ class PatchSerializer
 
     /**
      * Get patch statistics.
+     *
+     * @param array<int, array<string, mixed>> $patches
+     * @return array<string, mixed>
      */
     public function getStatistics(array $patches): array
     {

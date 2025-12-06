@@ -11,6 +11,8 @@ class StateSigner
 {
     /**
      * Generate HMAC signature for state.
+     *
+     * @param array<string, mixed> $state
      */
     public static function sign(array $state, string $componentId): string
     {
@@ -23,6 +25,8 @@ class StateSigner
 
     /**
      * Verify state signature.
+     *
+     * @param array<string, mixed> $state
      */
     public static function verify(array $state, string $componentId, string $signature): bool
     {
@@ -34,6 +38,9 @@ class StateSigner
     /**
      * Normalize state for consistent signature generation.
      * Handles differences between client/server serialization.
+     *
+     * @param array<string, mixed> $state
+     * @return array<string, mixed>
      */
     protected static function normalizeState(array $state): array
     {

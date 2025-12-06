@@ -18,6 +18,8 @@ class DiffyneManager
 
     /**
      * Registered component aliases.
+     *
+     * @var array<string, string>
      */
     protected array $components = [];
 
@@ -38,15 +40,18 @@ class DiffyneManager
 
     /**
      * Mount a component and return its initial HTML.
+     *
+     * @param array<string, mixed> $params
      */
     public function mount(string $component, array $params = []): string
     {
         $componentClass = $this->resolveComponent($component);
 
-        if (! $componentClass) {
+        if (! is_string($componentClass) || ! class_exists($componentClass)) {
             throw new \InvalidArgumentException("Component [{$component}] not found.");
         }
 
+        /** @var class-string $componentClass */
         $reflection = new ReflectionClass($componentClass);
         $lazyAttributes = $reflection->getAttributes(Lazy::class);
 
@@ -62,11 +67,14 @@ class DiffyneManager
 
     /**
      * Mount a lazy-loaded component with placeholder.
+     *
+     * @param array<string, mixed> $params
      */
     protected function mountLazy(string $componentClass, array $params, Lazy $lazyAttr): string
     {
         $id = 'diffyne-'.\Illuminate\Support\Str::random(16);
-        $paramsEncoded = htmlspecialchars(json_encode($params), ENT_QUOTES, 'UTF-8');
+        $paramsJson = json_encode($params);
+        $paramsEncoded = htmlspecialchars($paramsJson !== false ? $paramsJson : '{}', ENT_QUOTES, 'UTF-8');
 
         // For nested components, use the full path as component name
         $namespace = config('diffyne.component_namespace', 'App\\Diffyne');
@@ -137,15 +145,19 @@ HTML;
 
     /**
      * Wrap rendered component in container div with metadata.
+     *
+     * @param array<string, mixed> $rendered
      */
     protected function wrapComponent(array $rendered, string $componentClass): string
     {
         $id = $rendered['id'];
         $html = $rendered['html'];
-        $state = htmlspecialchars(json_encode($rendered['state']), ENT_QUOTES, 'UTF-8');
+        $stateJson = json_encode($rendered['state']);
+        $state = htmlspecialchars($stateJson !== false ? $stateJson : '{}', ENT_QUOTES, 'UTF-8');
         $fingerprint = $rendered['fingerprint'];
         $signature = $rendered['signature'];
-        $eventListeners = htmlspecialchars(json_encode($rendered['eventListeners'] ?? []), ENT_QUOTES, 'UTF-8');
+        $eventListenersJson = json_encode($rendered['eventListeners'] ?? []);
+        $eventListeners = htmlspecialchars($eventListenersJson !== false ? $eventListenersJson : '[]', ENT_QUOTES, 'UTF-8');
 
         // For nested components, use the full path as component name
         $namespace = config('diffyne.component_namespace', 'App\\Diffyne');
@@ -187,6 +199,8 @@ HTML;
 
     /**
      * Get all registered components.
+     *
+     * @return array<string, string>
      */
     public function getComponents(): array
     {

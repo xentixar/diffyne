@@ -19,6 +19,8 @@ class Renderer
 
     /**
      * Component Virtual DOM snapshots.
+     *
+     * @var array<string, VNode>
      */
     protected array $snapshots = [];
 
@@ -30,6 +32,8 @@ class Renderer
 
     /**
      * Render a component and return initial HTML with metadata.
+     *
+     * @return array<string, mixed>
      */
     public function renderInitial(Component $component): array
     {
@@ -56,6 +60,8 @@ class Renderer
 
     /**
      * Re-render a component and generate patches.
+     *
+     * @return array<string, mixed>
      */
     public function renderUpdate(Component $component): array
     {
@@ -117,6 +123,9 @@ class Renderer
     /**
      * Normalize state for signature generation.
      * Converts empty strings to null to match how Laravel receives them from requests.
+     *
+     * @param array<string, mixed> $state
+     * @return array<string, mixed>
      */
     protected function normalizeStateForSigning(array $state): array
     {
@@ -143,20 +152,17 @@ class Renderer
             return $view;
         }
 
-        if ($view instanceof IlluminateView) {
-            // Pass component state and errors to the view
-            $errorBag = new ViewErrorBag();
-            $errorBag->put('default', $component->getErrorBag());
+        // $view is guaranteed to be View instance at this point (from Component::render() return type)
+        // Pass component state and errors to the view
+        $errorBag = new ViewErrorBag();
+        $errorBag->put('default', $component->getErrorBag());
 
-            $data = array_merge(
-                $component->getState(),
-                ['errors' => $errorBag]
-            );
+        $data = array_merge(
+            $component->getState(),
+            ['errors' => $errorBag]
+        );
 
-            return $view->with($data)->render();
-        }
-
-        throw new \InvalidArgumentException('Component render() must return a string or View instance.');
+        return $view->with($data)->render();
     }
 
     /**

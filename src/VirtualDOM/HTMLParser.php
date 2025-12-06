@@ -77,6 +77,8 @@ class HTMLParser
 
     /**
      * Extract attributes from a DOM element.
+     *
+     * @return array<string, string>
      */
     protected function extractAttributes(DOMElement $element): array
     {
@@ -94,6 +96,8 @@ class HTMLParser
 
     /**
      * Convert child nodes to VNode array.
+     *
+     * @return array<int, VNode>
      */
     protected function convertChildren(DOMElement $element): array
     {
@@ -115,6 +119,9 @@ class HTMLParser
 
     /**
      * Parse multiple HTML fragments.
+     *
+     * @param array<int, string> $htmlStrings
+     * @return array<int, VNode>
      */
     public function parseFragments(array $htmlStrings): array
     {

@@ -8,6 +8,8 @@ class ComponentHydrator
 {
     /**
      * Hydrate a component from serialized state.
+     *
+     * @param array<string, mixed> $state
      */
     public function hydrate(string $componentClass, array $state, string $id): Component
     {
@@ -30,6 +32,8 @@ class ComponentHydrator
 
     /**
      * Dehydrate a component to serialized state.
+     *
+     * @return array<string, mixed>
      */
     public function dehydrate(Component $component): array
     {
@@ -45,6 +49,8 @@ class ComponentHydrator
 
     /**
      * Create a fresh component instance.
+     *
+     * @param array<string, mixed> $params
      */
     public function mount(string $componentClass, array $params = []): Component
     {

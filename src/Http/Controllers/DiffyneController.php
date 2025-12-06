@@ -168,11 +168,6 @@ class DiffyneController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (BadMethodCallException $e) {
-            $response = $this->renderer->renderUpdate($component);
-
-            return response()->json($this->serializer->toResponse($response));
-
-        } catch (BadMethodCallException $e) {
             return response()->json([
                 's' => false,
                 'error' => $e->getMessage(),

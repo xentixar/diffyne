@@ -33,11 +33,15 @@ class VNode
 
     /**
      * Node attributes.
+     *
+     * @var array<string, mixed>
      */
     public array $attributes = [];
 
     /**
      * Child nodes.
+     *
+     * @var array<int, VNode>
      */
     public array $children = [];
 
@@ -48,11 +52,16 @@ class VNode
 
     /**
      * Node path in the tree (for efficient updates).
+     *
+     * @var array<int, int>
      */
     public array $path = [];
 
     /**
      * Create a new VNode instance.
+     *
+     * @param array<string, mixed> $attributes
+     * @param array<int, VNode> $children
      */
     public function __construct(
         string $type,
@@ -75,6 +84,9 @@ class VNode
 
     /**
      * Create an element node.
+     *
+     * @param array<string, mixed> $attributes
+     * @param array<int, VNode> $children
      */
     public static function element(string $tag, array $attributes = [], array $children = []): self
     {
@@ -123,6 +135,8 @@ class VNode
 
     /**
      * Set the node's path in the tree.
+     *
+     * @param array<int, int> $path
      */
     public function setPath(array $path): void
     {
@@ -130,9 +144,7 @@ class VNode
 
         // Recursively set paths for children
         foreach ($this->children as $index => $child) {
-            if ($child instanceof VNode) {
-                $child->setPath([...$path, $index]);
-            }
+            $child->setPath([...$path, $index]);
         }
     }
 
@@ -179,6 +191,8 @@ class VNode
 
     /**
      * Convert the node to an array representation.
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {
@@ -206,6 +220,8 @@ class VNode
 
     /**
      * Convert node to minimal client representation (compact keys, no paths).
+     *
+     * @return array<string, mixed>
      */
     public function toMinimal(): array
     {

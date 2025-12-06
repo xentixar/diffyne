@@ -23,6 +23,12 @@ class MakeDiffyneCommand extends Command
     public function handle(): int
     {
         $name = $this->argument('name');
+        if (! is_string($name)) {
+            $this->error('Component name is required');
+
+            return self::FAILURE;
+        }
+
         $className = $this->getClassName($name);
         $baseNamespace = config('diffyne.component_namespace', 'App\\Diffyne');
         $namespace = $this->getFullNamespace($baseNamespace);
@@ -96,6 +102,9 @@ class MakeDiffyneCommand extends Command
     protected function getClassPath(string $className, string $namespace): string
     {
         $name = $this->argument('name');
+        if (! is_string($name)) {
+            $name = '';
+        }
         $relativePath = str_replace('\\', '/', str_replace('App\\', '', $namespace));
 
         // Handle nested paths
@@ -117,6 +126,9 @@ class MakeDiffyneCommand extends Command
     protected function getFullNamespace(string $baseNamespace): string
     {
         $name = $this->argument('name');
+        if (! is_string($name)) {
+            return $baseNamespace;
+        }
         $parts = explode('/', $name);
 
         if (count($parts) > 1) {
