@@ -5,5 +5,5 @@ parameters:
     excludePaths:
         - tests
     ignoreErrors:
-        - '#is used zero times and is not\s+analysed#'
+        - '#is used zero times and is not analysed#'
 
