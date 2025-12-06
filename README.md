@@ -30,7 +30,7 @@ php artisan vendor:publish --tag=diffyne-assets
 php artisan make:diffyne Counter
 ```
 
-**[📖 Full Installation Guide →](docs/getting-started/installation.md)**
+**[📖 Full Installation Guide →](https://github.com/diffyne/docs/blob/main/getting-started/installation.md)**
 
 ## 🧩 Example Component
 
@@ -66,7 +66,7 @@ class Counter extends Component
 
 When the button is clicked, Diffyne sends only the minimal patch (~50 bytes) instead of the full HTML (~400 bytes)!
 
-**[🎯 More Examples →](docs/examples/)**
+**[🎯 More Examples →](https://github.com/diffyne/docs/tree/main/examples)**
 
 ## ⚙️ Core Features
 
@@ -91,37 +91,39 @@ When the button is clicked, Diffyne sends only the minimal patch (~50 bytes) ins
 </form>
 ```
 
-**[📚 Complete Directives Guide →](docs/features/directives.md)**
+**[📚 Complete Directives Guide →](https://github.com/diffyne/docs/blob/main/features/directives.md)**
 
 ## 📖 Documentation
 
+📚 **Full documentation is available in the [Diffyne Docs Repository](https://github.com/diffyne/docs)**
+
 ### Getting Started
-- [Installation](docs/getting-started/installation.md)
-- [Quick Start](docs/getting-started/quickstart.md)
-- [Your First Component](docs/getting-started/first-component.md)
+- [Installation](https://github.com/diffyne/docs/blob/main/getting-started/installation.md)
+- [Quick Start](https://github.com/diffyne/docs/blob/main/getting-started/quickstart.md)
+- [Your First Component](https://github.com/diffyne/docs/blob/main/getting-started/first-component.md)
 
 ### Features
-- [Directives Overview](docs/features/directives.md)
-- [Click Events](docs/features/click-events.md)
-- [Data Binding](docs/features/data-binding.md)
-- [Forms](docs/features/forms.md)
-- [Validation](docs/features/validation.md)
-- [Loading States](docs/features/loading-states.md)
-- [Polling](docs/features/polling.md)
-- [Error Handling](docs/features/error-handling.md)
+- [Directives Overview](https://github.com/diffyne/docs/blob/main/features/directives.md)
+- [Click Events](https://github.com/diffyne/docs/blob/main/features/click-events.md)
+- [Data Binding](https://github.com/diffyne/docs/blob/main/features/data-binding.md)
+- [Forms](https://github.com/diffyne/docs/blob/main/features/forms.md)
+- [Validation](https://github.com/diffyne/docs/blob/main/features/validation.md)
+- [Loading States](https://github.com/diffyne/docs/blob/main/features/loading-states.md)
+- [Polling](https://github.com/diffyne/docs/blob/main/features/polling.md)
+- [Error Handling](https://github.com/diffyne/docs/blob/main/features/error-handling.md)
 
 ### Examples
-- [Counter Component](docs/examples/counter.md)
-- [Todo List](docs/examples/todo-list.md)
-- [Contact Form](docs/examples/contact-form.md)
-- [Live Search](docs/examples/search.md)
+- [Counter Component](https://github.com/diffyne/docs/blob/main/examples/counter.md)
+- [Todo List](https://github.com/diffyne/docs/blob/main/examples/todo-list.md)
+- [Contact Form](https://github.com/diffyne/docs/blob/main/examples/contact-form.md)
+- [Live Search](https://github.com/diffyne/docs/blob/main/examples/search.md)
 
 ### Advanced
-- [Virtual DOM Engine](docs/advanced/virtual-dom.md)
-- [Lifecycle Hooks](docs/advanced/lifecycle-hooks.md)
-- [Component State](docs/advanced/component-state.md)
-- [Performance](docs/advanced/performance.md)
-- [Testing](docs/advanced/testing.md)
+- [Virtual DOM Engine](https://github.com/diffyne/docs/blob/main/advanced/virtual-dom.md)
+- [Lifecycle Hooks](https://github.com/diffyne/docs/blob/main/advanced/lifecycle-hooks.md)
+- [Component State](https://github.com/diffyne/docs/blob/main/advanced/component-state.md)
+- [Performance](https://github.com/diffyne/docs/blob/main/advanced/performance.md)
+- [Testing](https://github.com/diffyne/docs/blob/main/advanced/testing.md)
 
 ## ⚡ Performance
 
@@ -155,7 +157,12 @@ When the button is clicked, Diffyne sends only the minimal patch (~50 bytes) ins
 
 ## 🤝 Contributing
 
-Pull requests are welcome! Follow PSR-12 and include tests for new features.
+We welcome contributions! Please see our [Contributing Guide](.github/CONTRIBUTING.md) for details.
+
+- [Contributing Guide](.github/CONTRIBUTING.md)
+- [Code of Conduct](.github/CODE_OF_CONDUCT.md)
+- [Security Policy](.github/SECURITY.md)
+- [Support](.github/SUPPORT.md)
 
 ## 📝 License
 
