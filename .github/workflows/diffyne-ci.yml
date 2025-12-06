@@ -30,19 +30,15 @@ jobs:
           coverage: none
 
       - name: Install Composer dependencies
-        working-directory: packages/diffyne
         run: |
           composer install --prefer-dist --no-interaction --no-progress
 
       - name: Run PHPStan
-        working-directory: packages/diffyne
         run: composer analyse
 
       - name: Check code formatting
-        working-directory: packages/diffyne
         run: composer format:test
 
       - name: Run tests
-        working-directory: packages/diffyne
         run: composer test
 
