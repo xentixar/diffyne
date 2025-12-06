@@ -1,0 +1,48 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Documentation - exclude (moved to separate repo)
+/docs export-ignore
+
+# Tests - exclude from release
+/tests export-ignore
+
+# Development files - exclude
+/.github export-ignore
+/.php-cs-fixer.php export-ignore
+/.php-cs-fixer.cache export-ignore
+/phpstan.neon export-ignore
+/phpunit.xml export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore
+
+# Node.js files - exclude
+/node_modules export-ignore
+/package.json export-ignore
+/package-lock.json export-ignore
+/vite.config.js export-ignore
+/build.js export-ignore
+
+# Build and cache files - exclude
+/build export-ignore
+/dist export-ignore
+/.cache export-ignore
+
+# Vendor dependencies - exclude (installed via composer)
+/vendor export-ignore
+
+# IDE and editor files - exclude
+/.idea export-ignore
+/.vscode export-ignore
+/.phpstorm.meta.php export-ignore
+/.php_cs.cache export-ignore
+
+# OS files - exclude
+.DS_Store export-ignore
+Thumbs.db export-ignore
+
+# Composer lock file - exclude (not needed in package)
+/composer.lock export-ignore
+
+# Everything else (src, config, resources, routes, stubs, public, README, LICENSE, CHANGELOG, composer.json) will be included by default
+
