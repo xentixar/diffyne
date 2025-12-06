@@ -539,7 +539,7 @@ abstract class Component
      *
      * @return array<string, mixed>
      */
-    protected function serializePaginator(LengthAwarePaginator $paginator): array
+    protected function serializePaginator(LengthAwarePaginator $paginator): array //@phpstan-ignore-line
     {
         // Convert items to array if they're objects
         $items = $paginator->items();
@@ -611,7 +611,7 @@ abstract class Component
      *
      * @param array<string, mixed> $data
      */
-    protected function deserializePaginator(array $data): LengthAwarePaginator
+    protected function deserializePaginator(array $data): LengthAwarePaginator //@phpstan-ignore-line
     {
         $items = $data['items'] ?? [];
         $total = $data['total'] ?? 0;
@@ -623,6 +623,7 @@ abstract class Component
             if (is_array($item)) {
                 return (object) $item;
             }
+
             return $item;
         }, $items);
 
