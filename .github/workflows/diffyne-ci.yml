@@ -9,11 +9,19 @@ on:
       - main
 
 jobs:
-  static-analysis:
-    name: PHPStan Static Analysis (PHP ${{ matrix.php }})
+  approval:
+    name: CI Approval Gate
     runs-on: ubuntu-latest
     environment: 
       name: ci-approval
+    steps:
+      - name: Approval granted
+        run: echo "CI approval granted, proceeding with checks..."
+
+  static-analysis:
+    name: PHPStan Static Analysis (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    needs: approval
     permissions:
       contents: read
       pull-requests: write
@@ -52,8 +60,7 @@ jobs:
   format-check:
     name: Code Formatting Check (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
-    environment: 
-      name: ci-approval
+    needs: approval
     permissions:
       contents: read
       pull-requests: write
@@ -92,8 +99,7 @@ jobs:
   test:
     name: Run Tests (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
-    environment: 
-      name: ci-approval
+    needs: approval
     permissions:
       contents: read
       pull-requests: write
