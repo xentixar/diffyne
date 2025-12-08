@@ -112,6 +112,7 @@ class DiffyneServiceProvider extends ServiceProvider
         // @diffyneStyles directive for including CSS and CSRF meta tag
         Blade::directive('diffyneStyles', function () {
             $csrfToken = csrf_token();
+
             return "<meta name=\"csrf-token\" content=\"{$csrfToken}\">";
         });
     }

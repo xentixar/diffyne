@@ -88,22 +88,23 @@ class DiffyneController extends SocketController
                 'property-updates' => false,
                 default => false,
             };
-            
+
             if ($shouldVerify) {
                 if (! $signature) {
                     $this->emit($clientId, 'diffyne.error', [
                         'error' => 'Missing state signature',
                         'type' => 'validation_error',
                     ]);
+
                     return;
                 }
 
                 $signatureValid = StateSigner::verify($state, $componentId, $signature);
-                
+
                 if (! $signatureValid && config('diffyne.security.lenient_form_verification', true)) {
                     $reconstructedState = $state;
                     $reconstructedCount = 0;
-                    
+
                     foreach ($reconstructedState as $key => $value) {
                         if (is_string($value) && $value !== '') {
                             $reconstructedState[$key] = null;
@@ -116,13 +117,13 @@ class DiffyneController extends SocketController
                             $reconstructedCount++;
                         }
                     }
-                    
+
                     if ($reconstructedCount > 0 && $reconstructedCount <= 20) {
                         $reconstructedState = $this->normalizeStateForVerification($reconstructedState);
                         $signatureValid = StateSigner::verify($reconstructedState, $componentId, $signature);
                     }
                 }
-                
+
                 if (! $signatureValid) {
                     Log::warning('Invalid state signature detected (WebSocket)', [
                         'component_id' => $componentId,
@@ -133,6 +134,7 @@ class DiffyneController extends SocketController
                         'error' => 'Invalid state signature. State may have been tampered with.',
                         'type' => 'security_error',
                     ]);
+
                     return;
                 }
             }
@@ -230,13 +232,14 @@ class DiffyneController extends SocketController
                 'property-updates' => true,
                 default => false,
             };
-            
+
             if ($shouldVerify) {
                 if (! $signature) {
                     $this->emit($clientId, 'diffyne.error', [
                         'error' => 'Missing state signature',
                         'type' => 'validation_error',
                     ]);
+
                     return;
                 }
 
@@ -250,6 +253,7 @@ class DiffyneController extends SocketController
                         'error' => 'Invalid state signature. State may have been tampered with.',
                         'type' => 'security_error',
                     ]);
+
                     return;
                 }
             }
@@ -317,6 +321,10 @@ class DiffyneController extends SocketController
         }
     }
 
+    /**
+     * @param array<string, mixed> $state
+     * @return array<string, mixed>
+     */
     protected function normalizeStateForVerification(array $state): array
     {
         foreach ($state as $key => $value) {
@@ -326,8 +334,9 @@ class DiffyneController extends SocketController
                 $state[$key] = $this->normalizeStateForVerification($value);
             }
         }
-        
+
         ksort($state);
+
         return $state;
     }
 

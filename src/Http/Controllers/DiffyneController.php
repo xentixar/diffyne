@@ -65,7 +65,7 @@ class DiffyneController extends Controller
                 'property-updates' => ($type === 'update'),
                 default => false,
             };
-            
+
             if ($shouldVerify) {
                 if (! $signature) {
                     return response()->json([
@@ -75,11 +75,11 @@ class DiffyneController extends Controller
                 }
 
                 $signatureValid = StateSigner::verify($state, $componentId, $signature);
-                
+
                 if (! $signatureValid && $type === 'call' && config('diffyne.security.lenient_form_verification', true)) {
                     $reconstructedState = $state;
                     $reconstructedCount = 0;
-                    
+
                     foreach ($reconstructedState as $key => $value) {
                         if (is_string($value) && $value !== '') {
                             $reconstructedState[$key] = null;
@@ -92,13 +92,13 @@ class DiffyneController extends Controller
                             $reconstructedCount++;
                         }
                     }
-                    
+
                     if ($reconstructedCount > 0 && $reconstructedCount <= 20) {
                         $reconstructedState = $this->normalizeStateForVerification($reconstructedState);
                         $signatureValid = StateSigner::verify($reconstructedState, $componentId, $signature);
                     }
                 }
-                
+
                 if (! $signatureValid) {
                     Log::warning('Invalid state signature detected', [
                         'component_id' => $componentId,
@@ -237,6 +237,10 @@ class DiffyneController extends Controller
         }
     }
 
+    /**
+     * @param array<string, mixed> $state
+     * @return array<string, mixed>
+     */
     protected function normalizeStateForVerification(array $state): array
     {
         foreach ($state as $key => $value) {
@@ -246,8 +250,9 @@ class DiffyneController extends Controller
                 $state[$key] = $this->normalizeStateForVerification($value);
             }
         }
-        
+
         ksort($state);
+
         return $state;
     }
 
