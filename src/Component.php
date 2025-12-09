@@ -887,13 +887,24 @@ abstract class Component
      * @param string $identifier Temporary file identifier (from upload)
      * @param string $destinationPath Destination path (e.g., 'avatars/user-123.jpg')
      * @param string|null $disk Storage disk (defaults to config)
+     * @param bool $useOriginalName If true, uses the original filename instead of destinationPath filename
      * @return string|null Permanent file path or null on failure
      */
-    protected function moveTemporaryFile(string $identifier, string $destinationPath, ?string $disk = null): ?string
+    protected function moveTemporaryFile(string $identifier, string $destinationPath, ?string $disk = null, bool $useOriginalName = false): ?string
     {
         $service = app(FileUploadService::class);
 
-        return $service->moveToPermanent($identifier, $destinationPath, $disk);
+        return $service->moveToPermanent($identifier, $destinationPath, $disk, $useOriginalName);
+    }
+
+    /**
+     * Get the original filename for a temporary file.
+     */
+    public function getTemporaryFileOriginalName(string $identifier): ?string
+    {
+        $service = app(FileUploadService::class);
+
+        return $service->getTemporaryFileOriginalName($identifier);
     }
 
     /**

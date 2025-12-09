@@ -26,6 +26,20 @@ class FileUploadService
             throw new \RuntimeException('Failed to store file');
         }
 
+        // Store metadata including original filename
+        $metadata = [
+            'original_name' => $file->getClientOriginalName(),
+            'mime_type' => $file->getMimeType(),
+            'size' => $file->getSize(),
+            'uploaded_at' => now()->toIso8601String(),
+        ];
+
+        $metadataPath = $path.'/'.$componentId.'/'.$filename.'.meta';
+        $metadataJson = json_encode($metadata);
+        if ($metadataJson !== false) {
+            Storage::disk($disk)->put($metadataPath, $metadataJson);
+        }
+
         return $componentId.':'.$filename;
     }
 
@@ -46,7 +60,7 @@ class FileUploadService
         return Storage::disk($disk)->exists($fullPath) ? $fullPath : null;
     }
 
-    public function moveToPermanent(string $identifier, string $destinationPath, ?string $disk = null): ?string
+    public function moveToPermanent(string $identifier, string $destinationPath, ?string $disk = null, bool $useOriginalName = false): ?string
     {
         $tempPath = $this->getTemporaryPath($identifier);
 
@@ -54,11 +68,24 @@ class FileUploadService
             return null;
         }
 
+        // If useOriginalName is true, replace the filename in destinationPath with original name
+        if ($useOriginalName) {
+            $originalName = $this->getTemporaryFileOriginalName($identifier);
+            if ($originalName) {
+                $directory = dirname($destinationPath);
+                $destinationPath = $directory !== '.' ? $directory.'/'.$originalName : $originalName;
+            }
+        }
+
         $storageDisk = $disk ?? config('diffyne.file_upload.disk', 'local');
         $tempDisk = config('diffyne.file_upload.disk', 'local');
 
         if ($storageDisk === $tempDisk) {
             if (Storage::disk($tempDisk)->move($tempPath, $destinationPath)) {
+                // Delete metadata file after successful move
+                $metadataPath = $tempPath.'.meta';
+                Storage::disk($tempDisk)->delete($metadataPath);
+
                 return $destinationPath;
             }
         }
@@ -66,6 +93,9 @@ class FileUploadService
         $content = Storage::disk($tempDisk)->get($tempPath);
         if ($content && Storage::disk($storageDisk)->put($destinationPath, $content)) {
             Storage::disk($tempDisk)->delete($tempPath);
+            // Delete metadata file after successful copy
+            $metadataPath = $tempPath.'.meta';
+            Storage::disk($tempDisk)->delete($metadataPath);
 
             return $destinationPath;
         }
@@ -82,8 +112,53 @@ class FileUploadService
         }
 
         $disk = config('diffyne.file_upload.disk', 'local');
+        $deleted = Storage::disk($disk)->delete($path);
 
-        return Storage::disk($disk)->delete($path);
+        // Also delete metadata file if it exists
+        $metadataPath = $path.'.meta';
+        Storage::disk($disk)->delete($metadataPath);
+
+        return $deleted;
+    }
+
+    /**
+     * Get metadata for a temporary file.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getTemporaryFileMetadata(string $identifier): ?array
+    {
+        $path = $this->getTemporaryPath($identifier);
+
+        if (! $path) {
+            return null;
+        }
+
+        $disk = config('diffyne.file_upload.disk', 'local');
+        $metadataPath = $path.'.meta';
+
+        if (! Storage::disk($disk)->exists($metadataPath)) {
+            return null;
+        }
+
+        $metadataJson = Storage::disk($disk)->get($metadataPath);
+        if (! $metadataJson) {
+            return null;
+        }
+
+        $metadata = json_decode($metadataJson, true);
+
+        return is_array($metadata) ? $metadata : null;
+    }
+
+    /**
+     * Get the original filename for a temporary file.
+     */
+    public function getTemporaryFileOriginalName(string $identifier): ?string
+    {
+        $metadata = $this->getTemporaryFileMetadata($identifier);
+
+        return $metadata['original_name'] ?? null;
     }
 
     /**
@@ -119,6 +194,8 @@ class FileUploadService
                     if (Storage::disk($disk)->delete($file)) {
                         $deletedCount++;
                     }
+                    $metadataPath = $file.'.meta';
+                    Storage::disk($disk)->delete($metadataPath);
                 }
             }
 
